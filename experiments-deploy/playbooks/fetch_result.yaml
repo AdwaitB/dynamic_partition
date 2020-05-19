@@ -1,0 +1,17 @@
+---
+- name: Fetch Results
+  hosts: all
+  tasks:
+
+    - name: Search for trace files
+      find:
+        paths: /root/deploy/traces/
+        patterns: ".*"
+        use_regex: True
+      register: files_to_fetch
+
+    - name: Fetch traces
+      fetch:
+        src: "{{ item.path }}"
+        dest: "{{ playbook_dir }}/../transient/{{ iteration }}"
+      with_items: "{{ files_to_fetch.files }}"

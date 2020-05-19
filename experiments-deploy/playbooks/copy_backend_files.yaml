@@ -1,0 +1,40 @@
+---
+- name: Copy Python and Infra files
+  hosts: all
+  tasks:
+    - name: Copy python files
+      copy:
+        src: "{{ item }}"
+        dest: /root/deploy/backend/
+      with_fileglob:
+        - "{{ playbook_dir }}/../../ipfs-table-update-backend/*.py"
+
+    - name: Copy json file
+      copy:
+        src: "{{ playbook_dir }}/../transient/infra.json"
+        dest: /root/deploy/backend/infra.json
+
+    - name: Creates directory for storing generated files
+      file:
+        path: /root/deploy/files
+        state: directory
+
+    - name: Creates directory for storing cached files
+      file:
+        path: /root/deploy/files-cache
+        state: directory
+
+    - name: Copy sh files
+      copy:
+        src: "{{ item }}"
+        dest: /root/deploy/files/
+      with_fileglob:
+        - "{{ playbook_dir }}/../*.sh"
+
+    - name: Create files
+      shell: bash /root/deploy/files/generate_files.sh
+
+    - name: Creates directory for storing traces
+      file:
+        path: /root/deploy/traces
+        state: directory

@@ -1,0 +1,7 @@
+---
+- name: Start Master Services
+  hosts: master
+  tasks:
+    - name: Start Master Controller
+      shell: /root/venv/bin/python /root/deploy/backend/master_controller.py {{ iteration }} 1> /root/deploy/traces/_master_stdout.txt 2> /root/deploy/traces/_master_stderr.txt
+      ignore_errors: yes

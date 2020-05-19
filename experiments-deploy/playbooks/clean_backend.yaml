@@ -1,0 +1,16 @@
+---
+- name: Reinitialize nodes
+  hosts: all
+  tasks:
+    - name: Delete deployed folder
+      file:
+        path: /root/deploy
+        state: absent
+
+    - name: install lsof
+      ignore_errors: yes
+      shell: "apt-get install lsof"
+
+    - name: Kill python controller
+      ignore_errors: yes
+      shell: "kill -9 $(lsof -i :12000 | grep python | awk '{ print $2 }')"
