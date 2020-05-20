@@ -8,7 +8,7 @@ from threading import Thread
 from execo_g5k import *
 
 
-// Testing if I can commit to this repo.
+# Testing if I can commit to this repo.
 
 def delete_file_if_exists(file_name):
 	try:
