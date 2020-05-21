@@ -68,7 +68,7 @@ def handler():
 		elif os.path.exists(FILE_CACHE + str(request_json[FH])):
 			return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
 		else:
-			logging.debug("{} - FILE NOT FOUND : ".format(dt.now(), str(request_json[FH])))
+			logging.debug("{}:FILE NOT FOUND:{}".format(dt.now(), str(request_json[FH])))
 			return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
 
 	elif request_json[TYPE] == RequestType.JOB.name:
