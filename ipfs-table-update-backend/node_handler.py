@@ -118,6 +118,7 @@ def handle_insert(request_json):
 	send_json[TYPE] = RequestType.ADD.name
 	send_json[RequestAdd.entry_ip.name] = table.my_ip
 	send_json[RequestAdd.entry_clock.name] = clock
+	send_json['job_id'] = request_json['job_id']
 
 	executor = None
 	if do_async and len(spt_children) > 0:
@@ -198,6 +199,7 @@ def handle_remove(request_json):
 	send_json[RequestDel.sender_ip.name] = table.my_ip
 	send_json[RequestDel.sender_entry_ip.name] = new_best_entry[0]
 	send_json[RequestDel.sender_entry_clock.name] = new_best_entry[1]
+	send_json['job_id'] = request_json['job_id']
 
 	executor = None
 	if do_async and len(neighbours) > 0:
@@ -257,7 +259,8 @@ def handle_del(request_json):
 			RequestDel.remove_src_clock.name: request_json[RequestDel.remove_src_clock.name],
 			RequestDel.sender_ip.name: table.my_ip,
 			RequestDel.sender_entry_ip.name: tasks[RequestType.DELETE.name]["new_best"][0],
-			RequestDel.sender_entry_clock.name: tasks[RequestType.DELETE.name]["new_best"][1]
+			RequestDel.sender_entry_clock.name: tasks[RequestType.DELETE.name]["new_best"][1],
+			'job_id': request_json['job_id']
 		}
 
 		for neighbour in tasks[RequestType.DELETE.name]["neighbours"]:
@@ -376,7 +379,8 @@ def do_new_query(request_json):
 	insert_json = {
 		TYPE: RequestType.INSERT.name,
 		FH: fhash,
-		RequestAdd.add_id.name: request_json[RequestAdd.add_id.name]
+		RequestAdd.add_id.name: request_json[RequestAdd.add_id.name],
+		'job_id': request_json['job_id']
 	}
 	my_session.post(generate_url(), json=insert_json, timeout=HTTP_TIMEOUT)
 
@@ -385,6 +389,7 @@ def do_new_query(request_json):
 		remove_json = {
 			TYPE: RequestType.REMOVE.name,
 			FH: removed_hash,
+			'job_id': request_json['job_id']
 		}
 		my_session.post(generate_url(), json=remove_json, timeout=HTTP_TIMEOUT)
 		logging.debug("{}:TRIGGER REMOVE: {}".format(dt.now(), removed_hash))
@@ -404,7 +409,8 @@ def do_dht_query(request_json):
 	dht_json = {
 		TYPE: RequestType.DHT.name,
 		SUBTYPE: 'request',
-		FH: fhash
+		FH: fhash,
+		'job_id': request_json['job_id']
 	}
 
 	ips = my_session.post(generate_url(dht_ip), json=dht_json, timeout=HTTP_TIMEOUT)
@@ -435,7 +441,8 @@ def do_dht_query(request_json):
 		TYPE: RequestType.DHT.name,
 		SUBTYPE: 'ack',
 		FH: fhash,
-		FSIP: table.my_ip
+		FSIP: table.my_ip,
+		'job_id': request_json['job_id']
 	}
 	my_session.post(generate_url(dht_ip), json=send_json_ack, timeout=HTTP_TIMEOUT)
 
@@ -445,7 +452,8 @@ def do_dht_query(request_json):
 			TYPE: RequestType.DHT.name,
 			SUBTYPE: 'del',
 			FH: removed_hash,
-			FSIP: table.my_ip
+			FSIP: table.my_ip,
+			'job_id': request_json['job_id']
 		}
 		dht_ip_remove = table.get_ip_by_value(removed_hash % table.n)
 		logging.debug(
@@ -463,7 +471,8 @@ def do_download(fhash, ip):
 
 	send_json = {
 		TYPE: RequestType.DOWNLOAD.name,
-		FH: fhash
+		FH: fhash,
+		'job_id': request_json['job_id']
 	}
 
 	file_data = my_session.post(generate_url(ip), json=send_json, timeout=HTTP_TIMEOUT)

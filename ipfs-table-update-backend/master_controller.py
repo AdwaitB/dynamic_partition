@@ -133,7 +133,7 @@ def request_job(ip, dataset, job_id, iteration_):
 		TYPE: RequestType.JOB.name,
 		FH: dataset.item(),
 		"iter": iteration_,
-		RequestAdd.add_id.name: job_id
+		'job_id': job_id
 	}
 
 	logging.debug("{}: REQUEST JOB {}: SUBMIT {}, send_json : {}, url : {}".format(
