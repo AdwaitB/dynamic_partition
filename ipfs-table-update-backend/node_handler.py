@@ -64,8 +64,10 @@ def handler():
 	elif request_json[TYPE] == RequestType.DOWNLOAD.name:
 		logging.debug("{}:HANDLE DOWNLOAD:START".format(dt.now()))
 		if os.path.exists(FILE_FOLDER + str(request_json[FH])):
+			logging.debug("{}:FILE DOWNLOAD OWNER:{}".format(dt.now(), str(request_json[FH])))
 			return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
 		elif os.path.exists(FILE_CACHE + str(request_json[FH])):
+			logging.debug("{}:FILE DOWNLOAD CACHE:{}".format(dt.now(), str(request_json[FH])))
 			return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
 		else:
 			logging.debug("{}:FILE NOT FOUND:{}".format(dt.now(), str(request_json[FH])))
@@ -84,13 +86,17 @@ def handle_dht(request_json):
 	:param request_json: The file hash and the ip of the requesting node
 	:return: set of nodes which have the ip
 	"""
+	logging.debug("{}:HANDLE DHT:START".format(dt.now()))
 
 	if request_json[SUBTYPE] == 'request':
+		logging.debug("{}:HANDLE DHT:REQUEST: {}".format(dt.now(), table.dht_ips[str(request_json[FH])]))
 		return table.dht_ips[str(request_json[FH])]
 	elif request_json[SUBTYPE] == 'ack':
+		logging.debug("{}:HANDLE DHT:ACK".format(dt.now()))
 		table.dht_ips[str(request_json[FH])].append(request_json[FSIP])
 		return "OK"
 	elif request_json[SUBTYPE] == 'del':
+		logging.debug("{}:HANDLE DHT:DEL".format(dt.now()))
 		if request_json[FSIP] in table.dht_ips[str(request_json[FH])]:
 			table.dht_ips[str(request_json[FH])].remove(request_json[FSIP])
 			return "OK"
@@ -102,9 +108,9 @@ def handle_insert(request_json):
 	:param request_json: json of the post method
 	:return: send_json that was sent to the peers, spt_children
 	"""
-	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
-
 	logging.debug("{}:HANDLE INSERT:START".format(dt.now()))
+
+	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
 	if request_json[FSIP] == table.my_ip:
 		logging.debug("{}:HANDLE INSERT:END SHORT".format(dt.now()))
@@ -148,9 +154,9 @@ def handle_add(request_json):
 	:param request_json: json of the post method
 	:return: spt_children
 	"""
-	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
-
 	logging.debug("{}:HANDLE ADD:START".format(dt.now()))
+
+	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
 	spt_children = table.handle_add(
 		(request_json[FH], request_json[FSIP]),
@@ -184,9 +190,9 @@ def handle_remove(request_json):
 	:param request_json: json of the post method
 	:return: old_best_entry, new_best_entry, neighbours
 	"""
-	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
-
 	logging.debug("{}:HANDLE REMOVE:START".format(dt.now()))
+
+	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
 	old_best_entry, new_best_entry, neighbours = table.handle_remove(
 		(request_json[FH], request_json[FSIP])
@@ -229,9 +235,9 @@ def handle_del(request_json):
 	:param request_json: json of the post method
 	:return: the add and del tasks
 	"""
-	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
-
 	logging.debug("{}:HANDLE DEL:START".format(dt.now()))
+
+	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
 	tasks = table.handle_del(
 		(request_json[FH], request_json[FSIP]),
@@ -358,6 +364,7 @@ def handle_job(request_json):
 
 def do_new_query(request_json):
 	logging.debug("{}:HANDLE JOB:NEW START".format(dt.now()))
+	
 	fhash = request_json[FH]
 
 	time_init = time.time()
