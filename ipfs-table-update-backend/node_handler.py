@@ -376,7 +376,7 @@ def do_new_query(request_json):
 
 	req_time = time.time() - time_init
 
-	download_time, removed_hash = do_download(request_json[FH], ip)
+	download_time, removed_hash = do_download(request_json[FH], ip, request_json)
 
 	download_time_with_file_write = time.time() - req_time - time_init
 
@@ -386,7 +386,6 @@ def do_new_query(request_json):
 	insert_json = {
 		TYPE: RequestType.INSERT.name,
 		FH: fhash,
-		RequestAdd.add_id.name: request_json[RequestAdd.add_id.name],
 		'job_id': request_json['job_id']
 	}
 	my_session.post(generate_url(), json=insert_json, timeout=HTTP_TIMEOUT)
@@ -433,7 +432,7 @@ def do_dht_query(request_json):
 
 	req_time = time.time() - time_init
 
-	download_time, removed_hash = do_download(request_json[FH], nearest_ip)
+	download_time, removed_hash = do_download(request_json[FH], nearest_ip, request_json)
 
 	download_time_with_file_write = time.time() - req_time - time_init
 
@@ -473,7 +472,7 @@ def do_dht_query(request_json):
 	return req_time, download_time, nearest_ip
 
 
-def do_download(fhash, ip):
+def do_download(fhash, ip, request_json):
 	time_download = time.time()
 
 	send_json = {
