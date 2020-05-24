@@ -19,9 +19,6 @@ def generate_url(ip=LOCALHOST, port=NODE_CUSTOM_PORT):
 
 
 def load_url(url, json_file):
-	logging.debug("{} LOAD URL: url : {}, json_file : {}".format(
-		dt.now(), url, json_file
-	))
 	return requests.post(url, json=json_file, timeout=HTTP_TIMEOUT)
 
 
