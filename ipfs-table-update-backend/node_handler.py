@@ -41,7 +41,7 @@ def handler():
 
 	output = 0
 
-	logging.debug("{}:DEFAULT:{}".format(dt.now(), request_json))
+	logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
 
 	global executor
 
@@ -62,15 +62,15 @@ def handler():
 	elif request_json[TYPE] == RequestType.CONTROL.name:
 		output = handle_control(request_json)
 	elif request_json[TYPE] == RequestType.DOWNLOAD.name:
-		logging.debug("{}:HANDLE DOWNLOAD:START".format(dt.now()))
+		logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START".format(dt.now(), request_json['job_id']))
 		if os.path.exists(FILE_FOLDER + str(request_json[FH])):
-			logging.debug("{}:FILE DOWNLOAD OWNER:{}".format(dt.now(), str(request_json[FH])))
+			logging.debug("{}:JOB ID {}:FILE DOWNLOAD OWNER:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
 			return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
 		elif os.path.exists(FILE_CACHE + str(request_json[FH])):
-			logging.debug("{}:FILE DOWNLOAD CACHE:{}".format(dt.now(), str(request_json[FH])))
+			logging.debug("{}:JOB ID {}:FILE DOWNLOAD CACHE:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
 			return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
 		else:
-			logging.debug("{}:FILE NOT FOUND:{}".format(dt.now(), str(request_json[FH])))
+			logging.debug("{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
 			return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
 
 	elif request_json[TYPE] == RequestType.JOB.name:
@@ -86,17 +86,17 @@ def handle_dht(request_json):
 	:param request_json: The file hash and the ip of the requesting node
 	:return: set of nodes which have the ip
 	"""
-	logging.debug("{}:HANDLE DHT:START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE DHT:START".format(dt.now(), request_json['job_id']))
 
 	if request_json[SUBTYPE] == 'request':
-		logging.debug("{}:HANDLE DHT:REQUEST: {}".format(dt.now(), table.dht_ips[str(request_json[FH])]))
+		logging.debug("{}:JOB ID {}:HANDLE DHT:REQUEST: {}".format(dt.now(), request_json['job_id'], table.dht_ips[str(request_json[FH])]))
 		return table.dht_ips[str(request_json[FH])]
 	elif request_json[SUBTYPE] == 'ack':
-		logging.debug("{}:HANDLE DHT:ACK".format(dt.now()))
+		logging.debug("{}:JOB ID {}:HANDLE DHT:ACK".format(dt.now(), request_json['job_id']))
 		table.dht_ips[str(request_json[FH])].append(request_json[FSIP])
 		return "OK"
 	elif request_json[SUBTYPE] == 'del':
-		logging.debug("{}:HANDLE DHT:DEL".format(dt.now()))
+		logging.debug("{}:JOB ID {}:HANDLE DHT:DEL".format(dt.now(), request_json['job_id']))
 		if request_json[FSIP] in table.dht_ips[str(request_json[FH])]:
 			table.dht_ips[str(request_json[FH])].remove(request_json[FSIP])
 			return "OK"
@@ -108,12 +108,12 @@ def handle_insert(request_json):
 	:param request_json: json of the post method
 	:return: send_json that was sent to the peers, spt_children
 	"""
-	logging.debug("{}:HANDLE INSERT:START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE INSERT:START".format(dt.now(), request_json['job_id']))
 
 	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
 	if request_json[FSIP] == table.my_ip:
-		logging.debug("{}:HANDLE INSERT:END SHORT".format(dt.now()))
+		logging.debug("{}:JOB ID {}:HANDLE INSERT:END SHORT".format(dt.now(), request_json['job_id']))
 		return {"send_json": "{}", "children": []}
 
 	spt_children, clock = table.handle_insert(
@@ -142,7 +142,7 @@ def handle_insert(request_json):
 		"send_json": send_json
 	})
 
-	logging.debug("{}:HANDLE INSERT:END".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE INSERT:END".format(dt.now(), request_json['job_id']))
 
 	return {"send_json": send_json, "children": spt_children}
 
@@ -154,7 +154,7 @@ def handle_add(request_json):
 	:param request_json: json of the post method
 	:return: spt_children
 	"""
-	logging.debug("{}:HANDLE ADD:START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE ADD:START".format(dt.now(), request_json['job_id']))
 
 	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -167,7 +167,7 @@ def handle_add(request_json):
 	if do_async and len(spt_children) > 0:
 		executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(spt_children))
 	for neighbour in spt_children:
-		logging.debug("{}:HANDLE ADD:ADD Send {}:{}".format(dt.now(), neighbour, request_json))
+		logging.debug("{}:JOB ID {}:HANDLE ADD:ADD Send {}:{}".format(dt.now(), request_json['job_id'], neighbour, request_json))
 		if do_async:
 			executor.submit(load_url, generate_url(neighbour), request_json)
 		else:
@@ -179,7 +179,7 @@ def handle_add(request_json):
 		"neighbours": spt_children
 	})
 
-	logging.debug("{}:HANDLE ADD:END".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE ADD:END".format(dt.now(), request_json['job_id']))
 
 	return {"children": spt_children}
 
@@ -190,7 +190,7 @@ def handle_remove(request_json):
 	:param request_json: json of the post method
 	:return: old_best_entry, new_best_entry, neighbours
 	"""
-	logging.debug("{}:HANDLE REMOVE:START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE REMOVE:START".format(dt.now(), request_json['job_id']))
 
 	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -211,7 +211,7 @@ def handle_remove(request_json):
 	if do_async and len(neighbours) > 0:
 		executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(neighbours))
 	for neighbour in neighbours:
-		logging.debug("{}:HANDLE REMOVE:SEND {}:{}".format(dt.now(), neighbour, send_json))
+		logging.debug("{}:JOB ID {}:HANDLE REMOVE:SEND {}:{}".format(dt.now(), request_json['job_id'], neighbour, send_json))
 		if do_async:
 			executor.submit(load_url, generate_url(neighbour), send_json)
 		else:
@@ -224,7 +224,7 @@ def handle_remove(request_json):
 		"neighbours": neighbours
 	})
 
-	logging.debug("{}:HANDLE REMOVE:END".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE REMOVE:END".format(dt.now(), request_json['job_id']))
 
 	return {"old_best": old_best_entry, "new_best": new_best_entry, "neighbours": neighbours}
 
@@ -235,7 +235,7 @@ def handle_del(request_json):
 	:param request_json: json of the post method
 	:return: the add and del tasks
 	"""
-	logging.debug("{}:HANDLE DEL:START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE DEL:START".format(dt.now(), request_json['job_id']))
 
 	request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -270,7 +270,7 @@ def handle_del(request_json):
 		}
 
 		for neighbour in tasks[RequestType.DELETE.name]["neighbours"]:
-			logging.debug("{}:HANDLE DEL:DEL SEND {}:{}".format(dt.now(), neighbour, send_json))
+			logging.debug("{}:JOB ID {}:HANDLE DEL:DEL SEND {}:{}".format(dt.now(), request_json['job_id'], neighbour, send_json))
 			if do_async:
 				executor.submit(load_url, generate_url(neighbour), send_json)
 			else:
@@ -285,7 +285,7 @@ def handle_del(request_json):
 			RequestAdd.entry_clock.name: tasks[RequestType.ADD.name]["new_best"][1]
 		}
 
-		logging.debug("{}:HANDLE DEL:ADD SEND {}:{}".format(dt.now(), tasks[RequestType.ADD.name]["ip"], send_json))
+		logging.debug("{}:JOB ID {}:HANDLE DEL:ADD SEND {}:{}".format(dt.now(), request_json['job_id'], tasks[RequestType.ADD.name]["ip"], send_json))
 		if do_async:
 			executor.submit(load_url, generate_url(tasks[RequestType.ADD.name]["ip"]), send_json)
 		else:
@@ -297,14 +297,14 @@ def handle_del(request_json):
 		"tasks": tasks
 	})
 
-	logging.debug("{}:HANDLE DEL:END".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE DEL:END".format(dt.now(), request_json['job_id']))
 
 	return {"tasks": tasks}
 
 
 def handle_control(request_json):
 	if request_json[SUBTYPE] == RequestSubtype.INIT.name:
-		logging.debug("{}: CONTROL INIT: START".format(dt.now()))
+		logging.debug("{}:JOB ID {}: CONTROL INIT: START".format(dt.now(), request_json['job_id']))
 
 		# IP of self
 		table.update_my_ip(request_json["ip"])
@@ -317,17 +317,17 @@ def handle_control(request_json):
 		# Get the fh corresponding to self
 		table.generate_dht_src()
 
-		logging.debug("{}: CONTROL INIT: DHT SRC {}".format(
-			dt.now(), table.dht_ips
+		logging.debug("{}:JOB ID {}: CONTROL INIT: DHT SRC {}".format(
+			dt.now(), request_json['job_id'], table.dht_ips
 		))
 
 		entries[Entries.CONTROL_ENTRIES.name].append(request_json)
 
-		logging.debug("{}: CONTROL INIT: END".format(dt.now()))
+		logging.debug("{}:JOB ID {}: CONTROL INIT: END".format(dt.now(), request_json['job_id']))
 		return 0
 	elif request_json[SUBTYPE] == RequestSubtype.FILE.name:
 		os.rename(FILE_FOLDER + str(request_json['File Size']), FILE_FOLDER + str(request_json[FH]))
-		logging.debug("{}:HANDLE CONTROL:FILE HASH, hash : {}".format(dt.now(), request_json['file_hash']))
+		logging.debug("{}:JOB ID {}:HANDLE CONTROL:FILE HASH, hash : {}".format(dt.now(), request_json['job_id'], request_json['file_hash']))
 		return 0
 	elif request_json[SUBTYPE] == RequestSubtype.WRITE_TRACE.name:
 		# Generate CSV traces
@@ -346,7 +346,7 @@ def handle_control(request_json):
 
 
 def handle_job(request_json):
-	logging.debug("{}:HANDLE JOB:START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:START".format(dt.now(), request_json['job_id']))
 
 	# First check if file exists
 	if os.path.exists(FILE_FOLDER + str(request_json[FH])) or os.path.exists(FILE_CACHE + str(request_json[FH])):
@@ -357,13 +357,13 @@ def handle_job(request_json):
 	else:
 		req_time, download_time, ip = do_dht_query(request_json)
 
-	logging.debug("{}:HANDLE JOB:END".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:END".format(dt.now(), request_json['job_id']))
 
 	return {"time_download": download_time, "req_time": req_time, "ignore": 0}
 
 
 def do_new_query(request_json):
-	logging.debug("{}:HANDLE JOB:NEW START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:NEW START".format(dt.now(), request_json['job_id']))
 	
 	fhash = request_json[FH]
 
@@ -380,7 +380,7 @@ def do_new_query(request_json):
 
 	download_time_with_file_write = time.time() - req_time - time_init
 
-	logging.debug("{}:HANDLE JOB:NEW, ip : {}".format(dt.now(), ip))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:NEW, ip : {}".format(dt.now(), request_json['job_id'], ip))
 
 	# Do an insert
 	insert_json = {
@@ -398,14 +398,14 @@ def do_new_query(request_json):
 			'job_id': request_json['job_id']
 		}
 		my_session.post(generate_url(), json=remove_json, timeout=HTTP_TIMEOUT)
-		logging.debug("{}:TRIGGER REMOVE: {}".format(dt.now(), removed_hash))
+		logging.debug("{}:JOB ID {}:TRIGGER REMOVE: {}".format(dt.now(), request_json['job_id'], removed_hash))
 
-	logging.debug("{}:HANDLE JOB:NEW END, time = {}".format(dt.now(), time_init))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:NEW END, time = {}".format(dt.now(), request_json['job_id'], time_init))
 	return req_time, download_time, ip
 
 
 def do_dht_query(request_json):
-	logging.debug("{}:HANDLE JOB:DHT START".format(dt.now()))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:DHT START".format(dt.now(), request_json['job_id']))
 	fhash = int(request_json[FH])
 
 	time_init = time.time()
@@ -436,8 +436,8 @@ def do_dht_query(request_json):
 
 	download_time_with_file_write = time.time() - req_time - time_init
 
-	logging.debug("{}:HANDLE JOB:DHT, nearest source : {}, all sources : {}".format(dt.now(), nearest_ip, ips))
-	logging.debug("{}:DEBUG:DHT, req_time: {}, latency: {}, my_ip: {}, dht_ip: {}".format(dt.now(), req_time,
+	logging.debug("{}:JOB ID {}:HANDLE JOB:DHT, nearest source : {}, all sources : {}".format(dt.now(), request_json['job_id'], nearest_ip, ips))
+	logging.debug("{}:JOB ID {}:DEBUG:DHT, req_time: {}, latency: {}, my_ip: {}, dht_ip: {}".format(dt.now(), request_json['job_id'], req_time,
 																						  table.infra.shortest_path_dist[
 																							  dht_ip][table.my_ip],
 																						  table.my_ip, dht_ip))
@@ -463,11 +463,11 @@ def do_dht_query(request_json):
 		}
 		dht_ip_remove = table.get_ip_by_value(removed_hash % table.n)
 		logging.debug(
-			"{}:TRIGGER REMOVE: , file_hash = {}, my_ip = {}, dht_ip = {}".format(dt.now(), removed_hash, table.my_ip,
+			"{}:JOB ID {}:TRIGGER REMOVE: , file_hash = {}, my_ip = {}, dht_ip = {}".format(dt.now(), request_json['job_id'], removed_hash, table.my_ip,
 																				  dht_ip_remove))
 		my_session.post(generate_url(dht_ip_remove), json=send_json_del, timeout=HTTP_TIMEOUT)
 
-	logging.debug("{}:HANDLE JOB:DHT END, time = {}".format(dt.now(), time_init))
+	logging.debug("{}:JOB ID {}:HANDLE JOB:DHT END, time = {}".format(dt.now(), request_json['job_id'], time_init))
 
 	return req_time, download_time, nearest_ip
 
@@ -483,13 +483,13 @@ def do_download(fhash, ip, request_json):
 
 	file_data = my_session.post(generate_url(ip), json=send_json, timeout=HTTP_TIMEOUT)
 	logging.debug(
-		"{}: Download file from: {} - {} - {}".format(dt.now(), fhash, ip, table.src_ips[str(fhash)]['source']))
+		"{}:JOB ID {}: Download file from: {} - {} - {}".format(dt.now(), request_json['job_id'], fhash, ip, table.src_ips[str(fhash)]['source']))
 
 	time_download = time.time() - time_download
 
 	global my_cache
 	removed_hash = my_cache.set(fhash, len(file_data.text))
-	logging.debug("{}:CONTENT OF MY CACHE = {}".format(dt.now(), my_cache.cache))
+	logging.debug("{}:JOB ID {}:CONTENT OF MY CACHE = {}".format(dt.now(), request_json['job_id'], my_cache.cache))
 
 	# Write the file
 	with open(FILE_CACHE + str(fhash), "w") as text_file:
