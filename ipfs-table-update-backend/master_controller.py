@@ -123,7 +123,7 @@ def do_jobs(n_jobs, mapping, step, upper, iteration_):
 
 
 def request_job(ip, dataset, job_id, iteration_):
-	logging.debug("{}: REQUEST JOB {}: START ip : {}, dataset {},{}".format(
+	logging.debug("{}:JOB ID {}: REQUEST JOB {}: START ip : {}, dataset {},{}".format(
 		dt.now(), job_id, ip, type(dataset), dataset
 	))
 
@@ -136,13 +136,13 @@ def request_job(ip, dataset, job_id, iteration_):
 		'job_id': job_id
 	}
 
-	logging.debug("{}: REQUEST JOB {}: SUBMIT {}, send_json : {}, url : {}".format(
+	logging.debug("{}:JOB ID {}:SUBMIT {}, send_json : {}, url : {}".format(
 		dt.now(), job_id, time.time(), send_json, generate_url(ip)
 	))
 
 	out = requests.post(generate_url(ip), json=send_json, timeout=HTTP_TIMEOUT)
 
-	logging.debug("{}: REQUEST JOB {}: DEBUG {}".format(
+	logging.debug("{}:JOB ID {}:DEBUG {}".format(
 		dt.now(), job_id, out.text
 	))
 
@@ -151,7 +151,7 @@ def request_job(ip, dataset, job_id, iteration_):
 	except:
 		return
 
-	logging.debug("{}: REQUEST JOB {}: SUBMIT COMPLETE {}".format(dt.now(), job_id, time.time()))
+	logging.debug("{}:JOB ID {}:SUBMIT COMPLETE {}".format(dt.now(), job_id, time.time()))
 
 	entry = {
 		"Job ID": job_id,
