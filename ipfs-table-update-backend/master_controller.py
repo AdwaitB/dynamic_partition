@@ -111,6 +111,8 @@ def do_jobs(n_jobs, mapping, step, upper, iteration_):
 
 	s.run()
 
+	executor.shutdown(wait=True)
+
 	traces = pandas.DataFrame()
 	for trace in traces_list:
 		traces = traces.append(trace, ignore_index=True)
