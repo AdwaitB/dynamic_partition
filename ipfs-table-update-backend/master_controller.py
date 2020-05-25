@@ -46,7 +46,8 @@ def initialize_nodes(mapping):
 			"subtype": "INIT",
 			"ip": infra.get_ip_by_name(node),
 			"mapping": mapping,
-			"node_mapping": node_mapping
+			"node_mapping": node_mapping,
+			"job_id": -1
 		})
 
 	post_multiple(ips, send_json_list, do_async)
@@ -72,7 +73,8 @@ def generate_files():
 				TYPE: RequestType.CONTROL.name,
 				SUBTYPE: RequestSubtype.FILE.name,
 				FH: identifier,
-				'File Size': i
+				'File Size': i,
+				"job_id": -1
 			})
 
 			mapping[identifier] = {
@@ -93,9 +95,9 @@ def do_jobs(n_jobs, mapping, step, upper, iteration_):
 	np.random.seed(SEED)
 	datasets = np.random.choice(list(mapping.keys()), n_jobs, replace=True)
 
-	logging.debug("{}: JOBS: ips : {}".format(dt.now(), ips))
-	logging.debug("{}: JOBS: datasets : {}".format(dt.now(), datasets))
-	logging.debug("{}: JOBS: mapping.keys type : {}".format(dt.now(), type(list(mapping.keys())[0])))
+	logging.debug("{}:JOBS:ips = {}".format(dt.now(), ips))
+	logging.debug("{}:JOBS:datasets = {}".format(dt.now(), datasets))
+	logging.debug("{}:JOBS:mapping.keys type = {}".format(dt.now(), type(list(mapping.keys())[0])))
 
 	random.seed(SEED)
 
@@ -186,7 +188,8 @@ def finalize_nodes():
 
 		send_json_list.append({
 			TYPE: RequestType.CONTROL.name,
-			SUBTYPE: RequestSubtype.WRITE_TRACE.name
+			SUBTYPE: RequestSubtype.WRITE_TRACE.name,
+			"job_id": -1
 		})
 
 	post_multiple(ips, send_json_list, do_async)

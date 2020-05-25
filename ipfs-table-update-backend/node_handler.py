@@ -282,7 +282,8 @@ def handle_del(request_json):
 			FH: request_json[FH],
 			FSIP: request_json[FSIP],
 			RequestAdd.entry_ip.name: tasks[RequestType.ADD.name]["new_best"][0],
-			RequestAdd.entry_clock.name: tasks[RequestType.ADD.name]["new_best"][1]
+			RequestAdd.entry_clock.name: tasks[RequestType.ADD.name]["new_best"][1],
+			'job_id': request_json['job_id']
 		}
 
 		logging.debug("{}:JOB ID {}:HANDLE DEL:ADD SEND:{}:{}".format(dt.now(), request_json['job_id'], tasks[RequestType.ADD.name]["ip"], send_json))
