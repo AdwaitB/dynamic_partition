@@ -127,7 +127,7 @@ def do_jobs(n_jobs, mapping, step, upper, iteration_):
 
 
 def request_job(ip, dataset, job_id, iteration_):
-	logging.debug("{}:JOB ID {}: REQUEST JOB {}: START ip : {}, dataset {},{}".format(
+	logging.debug("{}:JOB ID {}:START:ip = {}, dataset = {},{}".format(
 		dt.now(), job_id, ip, type(dataset), dataset
 	))
 
