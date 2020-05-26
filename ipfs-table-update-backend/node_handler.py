@@ -500,8 +500,9 @@ def do_download(fhash, ip, request_json):
     }
 
     file_data = my_session.post(generate_url(ip), json=send_json, timeout=HTTP_TIMEOUT)
+    logging.debug("{}:file data json {}".format(dt.now(), file_data.headers.get('content-type'), file_data.json()))
 
-    if file_data["output"] == "404": # Fallback to the source and add the time to get 404 + time to get file from the source.
+    if file_data.headers.get('content-type') != "application/octet-stream": # Fallback to the source and add the time to get 404 + time to get file from the source.
         logging.debug("{}:JOB ID {}:Error 404 Fall back to source:file_hash = {}, location = {}, source_ip = {}".format(dt.now(), request_json['job_id'], fhash, ip, table.src_ips[str(fhash)]['source']))
         file_data = my_session.post(generate_url(table.src_ips[str(fhash)]['source']), json=send_json, timeout=HTTP_TIMEOUT)
         time_download = time.time() - time_download
