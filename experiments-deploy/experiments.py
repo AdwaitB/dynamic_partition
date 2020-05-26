@@ -9,15 +9,15 @@ from parse_gml import generate_dict_from_yml
 from playbook import *
 from post_processing import *
 from provider_proxy import *
-from utils import *
+from utils_xp import *
 
 logging.basicConfig(level=logging.DEBUG)
 
-infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
+#infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
 # infra_current = INFRA_complete_10
-# infra_current = INFRA_two
-# provider = Providers.Vagrant
-provider = Providers.G5K
+infra_current = INFRA_triangle
+provider = Providers.Vagrant
+#provider = Providers.G5K
 
 pp(infra_current)
 

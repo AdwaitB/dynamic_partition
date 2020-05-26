@@ -2,7 +2,7 @@ from enum import Enum
 
 from enoslib.api import emulate_network, discover_networks
 from g5k_config import *
-from infra_parser import *
+from infra_parser_xp import *
 from vagrant_config import *
 
 

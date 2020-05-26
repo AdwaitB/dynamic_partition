@@ -1,11 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime as dt
-
 import requests
-
 logging.basicConfig(level=logging.DEBUG)
-
 from constants import *
 
 

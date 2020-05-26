@@ -1,15 +1,13 @@
 import concurrent.futures
-import logging
 import random
 import sched
 import sys
 import time
-from datetime import datetime as dt
-from pprint import pprint as pp
-
 import pandas
-from infra_parser import *
 from matplotlib import pyplot as plt
+from infra_parser import *
+from utils import *
+from datetime import datetime as dt
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -203,7 +201,6 @@ traces_list = []
 
 files_mapping = generate_files()
 initialize_nodes(files_mapping)
-# time.sleep(6600)
 do_jobs(N_JOBS, files_mapping, JOB_GENERATION_A, JOB_GENERATION_B, iteration)
 finalize_nodes()
 

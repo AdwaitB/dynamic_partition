@@ -1,10 +1,9 @@
 import json
 from copy import deepcopy as dc
 from pprint import pprint as pp
-
 import networkx as nx
 import numpy as np
-from utils import *
+from constants import *
 
 
 def dict_apply_path(d, l):

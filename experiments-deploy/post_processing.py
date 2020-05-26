@@ -1,8 +1,7 @@
 from copy import deepcopy as dc
-
 import pandas as pd
 from enoslib.task import enostask
-from infra_parser import Infra
+from infra_parser_xp import Infra
 from matplotlib import pyplot as plt
 
 
