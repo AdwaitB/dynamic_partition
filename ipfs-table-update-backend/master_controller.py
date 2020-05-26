@@ -60,7 +60,8 @@ def generate_files():
 	ips = []
 	request_json_list = []
 
-	identifier = 0
+	identifier = FILE_SIZES[len(FILE_SIZES)-1] + 1  # Initialize file hashes with a hash number superior to the
+	# maximum file size to avoid overriding existing files
 	for i in FILE_SIZES:
 		for node in infra.get_nodes():
 			ips.append(infra.get_ip_by_name(node))
