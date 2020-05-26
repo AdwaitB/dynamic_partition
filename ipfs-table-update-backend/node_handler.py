@@ -500,20 +500,19 @@ def do_download(fhash, ip, request_json):
     }
 
     file_data = my_session.post(generate_url(ip), json=send_json, timeout=HTTP_TIMEOUT)
-    logging.debug(
-        "{}:JOB ID {}:HANDLE JOB:DOWNLOAD:file_hash = {}, location = {}, source_ip = {}".format(dt.now(),
-                                                                                                request_json['job_id'],
-                                                                                                fhash, ip,
-                                                                                                table.src_ips[
-                                                                                                    str(fhash)][
-                                                                                                    'source']))
 
-    time_download = time.time() - time_download
+    if file_data["output"] == "404": # Fallback to the source and add the time to get 404 + time to get file from the source.
+        logging.debug("{}:JOB ID {}:Error 404 Fall back to source:file_hash = {}, location = {}, source_ip = {}".format(dt.now(), request_json['job_id'], fhash, ip, table.src_ips[str(fhash)]['source']))
+        file_data = my_session.post(generate_url(table.src_ips[str(fhash)]['source']), json=send_json, timeout=HTTP_TIMEOUT)
+        time_download = time.time() - time_download
+
+    else: # File has been downloaded correctly
+        logging.debug("{}:JOB ID {}:HANDLE JOB:DOWNLOAD:file_hash = {}, location = {}, source_ip = {}".format(dt.now(), request_json['job_id'], fhash, ip, table.src_ips[str(fhash)]['source']))
+        time_download = time.time() - time_download
 
     global my_cache
     removed_hash = my_cache.set(fhash, len(file_data.text))
-    logging.debug(
-        "{}:JOB ID {}:HANDLE JOB:DOWNLOAD:Cache = {}".format(dt.now(), request_json['job_id'], my_cache.cache))
+    logging.debug("{}:JOB ID {}:HANDLE JOB:DOWNLOAD:Cache = {}".format(dt.now(), request_json['job_id'], my_cache.cache))
 
     # Write the file
     with open(FILE_CACHE + str(fhash), "w") as text_file:
