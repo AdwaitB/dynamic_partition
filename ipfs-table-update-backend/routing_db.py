@@ -257,7 +257,7 @@ class Table:
 			if int(fh) % self.n == self.node_mapping[self.my_ip]:
 				self.dht_ips[fh] = [deepcopy(self.src_ips[fh]['source'])]
 
-		logging.debug("{}:JOB ID {}:dht_ips = {}".format(dt.now(), job_id, self.dht_ips))
+		logging.debug("{}:dht_ips = {}".format(dt.now(), self.dht_ips))
 
 	def get_ip_by_value(self, value):
 		for ip in self.node_mapping:
