@@ -139,7 +139,8 @@ def handle_insert(request_json):
         TS: str(dt.now()),
         "neighbours": spt_children,
         "request_json": request_json,
-        "send_json": send_json
+        "send_json": send_json,
+        "job_id": request_json['job_id']
     })
 
     logging.debug("{}:JOB ID {}:HANDLE INSERT:END:".format(dt.now(), request_json['job_id']))
@@ -177,7 +178,8 @@ def handle_add(request_json):
     entries[Entries.ADD_ENTRIES.name].append({
         TS: str(dt.now()),
         "request_json": request_json,
-        "neighbours": spt_children
+        "neighbours": spt_children,
+        "job_id": request_json['job_id']
     })
 
     logging.debug("{}:JOB ID {}:HANDLE ADD:END:".format(dt.now(), request_json['job_id']))
@@ -226,7 +228,8 @@ def handle_remove(request_json):
         TS: str(dt.now()),
         "request_json": request_json,
         "send_json": send_json,
-        "neighbours": neighbours
+        "neighbours": neighbours,
+        "job_id": request_json['job_id']
     })
 
     logging.debug("{}:JOB ID {}:HANDLE REMOVE:END:".format(dt.now(), request_json['job_id']))
@@ -302,7 +305,8 @@ def handle_del(request_json):
     entries[Entries.DELETE_ENTRIES.name].append({
         TS: str(dt.now()),
         "request_json": request_json,
-        "tasks": tasks
+        "tasks": tasks,
+        "job_id": request_json['job_id']
     })
 
     logging.debug("{}:JOB ID {}:HANDLE DEL:END:".format(dt.now(), request_json['job_id']))
