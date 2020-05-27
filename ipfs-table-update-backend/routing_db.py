@@ -108,7 +108,7 @@ class Table:
 
 		return ret
 
-	def handle_insert(self, file_id):
+	def handle_insert(self, file_id, job_id):
 		"""
 		Handles the insert of file in current node.
 		Creates a new entry of file if file doesnt already exists and returns SPT neighbours
@@ -129,7 +129,7 @@ class Table:
 
 		return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
 
-	def handle_add(self, file_id, remote_entry):
+	def handle_add(self, file_id, remote_entry, job_id):
 		"""
 		Handles the add message received from other node
 		Returns the list of SPT neighbours to send an update to.
@@ -157,7 +157,7 @@ class Table:
 		# This entry is not better, do not update any neighbouring nodes
 		return []
 
-	def handle_remove(self, file_id):
+	def handle_remove(self, file_id, job_id):
 		"""
 		Handle a remove statements
 		:param file_id: <file_hash, file_source> pair
@@ -180,7 +180,7 @@ class Table:
 		# Broadcast this entry
 		return old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip)
 
-	def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry):
+	def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry, job_id):
 		# Find set for condition 1
 		old_clocks = self.get_entries_for_file(file_id)
 

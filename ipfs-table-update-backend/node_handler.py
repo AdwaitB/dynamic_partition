@@ -117,7 +117,7 @@ def handle_insert(request_json):
         return {"send_json": "{}", "children": []}
 
     spt_children, clock = table.handle_insert(
-        (request_json[FH], request_json[FSIP])
+        (request_json[FH], request_json[FSIP]), request_json['job_id']
     )
 
     send_json = deepcopy(request_json)
@@ -161,7 +161,8 @@ def handle_add(request_json):
 
     spt_children = table.handle_add(
         (request_json[FH], request_json[FSIP]),
-        (request_json[RequestAdd.entry_ip.name], request_json[RequestAdd.entry_clock.name])
+        (request_json[RequestAdd.entry_ip.name], request_json[RequestAdd.entry_clock.name]), 
+        request_json['job_id']
     )
 
     executor = None
@@ -198,7 +199,7 @@ def handle_remove(request_json):
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
     old_best_entry, new_best_entry, neighbours = table.handle_remove(
-        (request_json[FH], request_json[FSIP])
+        (request_json[FH], request_json[FSIP]), request_json['job_id']
     )
 
     send_json = deepcopy(request_json)
@@ -214,11 +215,10 @@ def handle_remove(request_json):
     if do_async and len(neighbours) > 0:
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(neighbours))
     for neighbour in neighbours:
-        logging.debug("{}:JOB ID {}:HANDLE REMOVE:NEIGHBOURS:neighbours = {}, send_json = {}".format(dt.now(),
-                                                                                                     request_json[
-                                                                                                         'job_id'],
-                                                                                                     neighbour,
-                                                                                                     send_json))
+        logging.debug("{}:JOB ID {}:HANDLE REMOVE:NEIGHBOURS:neighbours = {}, send_json = {}".format(
+            dt.now(), request_json['job_id'], neighbour, send_json)
+        )
+
         if do_async:
             executor.submit(load_url, generate_url(neighbour), send_json)
         else:
@@ -251,7 +251,8 @@ def handle_del(request_json):
         (request_json[FH], request_json[FSIP]),
         (request_json[RequestDel.remove_src_ip.name], request_json[RequestDel.remove_src_clock.name]),
         request_json[RequestDel.sender_ip.name],
-        (request_json[RequestDel.sender_entry_ip.name], request_json[RequestDel.sender_entry_clock.name])
+        (request_json[RequestDel.sender_entry_ip.name], request_json[RequestDel.sender_entry_clock.name]),
+        request_json['job_id']
     )
 
     total = 0
