@@ -119,6 +119,8 @@ class Table:
 		:return: [list of neighbours], clock
 		"""
 
+		logging.debug("{}:JOB ID {}:ROUTING INSERT:START:".format(dt.now(), job_id))
+
 		self.parent_lock.acquire()
 		self.clock = self.clock + 1
 		if file_id in self.entries:
@@ -126,6 +128,8 @@ class Table:
 		else:
 			self.entries[file_id] = LockedEntry((self.my_ip, self.clock))
 		self.parent_lock.release()
+
+		logging.debug("{}:JOB ID {}:ROUTING ADD:END:".format(dt.now(), job_id))
 
 		return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
 
@@ -138,17 +142,19 @@ class Table:
 		:param remote_entry: <ip, clock> for the added file
 		:return: [list of neighbours]
 		"""
+		logging.debug("{}:JOB ID {}:ROUTING ADD:START:".format(dt.now(), job_id))
+
 		# Find the best location of this object. Can be source and not necessary that this object has an entry.
 		best = self.get_best_entry_for_file(file_id)
 
-		logging.debug("{}:ADD:Current Best = {}".format(dt.now(), best))
+		logging.debug("{}:JOB ID {}:ROUTING ADD:current_best = {}".format(dt.now(), job_id, best))
 
 		# If the best distance is not better than what was passed to function, update the table
 		if self.infra.shortest_path_dist[best[0]][self.my_ip] > self.infra.shortest_path_dist[remote_entry[0]][
 			self.my_ip]:
 			# This entry is better, add this to the local set
 			logging.debug(
-				"{}:ADD:New entry added: File ID = {}, Remote Entry = {}".format(dt.now(), file_id, remote_entry))
+				"{}:JOB ID {}:ROUTING ADD:new_entry_added = (file_id = {}, remote_entry = {})".format(dt.now(), job_id, file_id, remote_entry))
 			self.update_entries_for_file(file_id, remote_entry)
 
 			# Return a list of neighbours that need to be notified
@@ -163,6 +169,7 @@ class Table:
 		:param file_id: <file_hash, file_source> pair
 		:return: old_best, new_best, broadcast_neighbours
 		"""
+		logging.debug("{}:JOB ID {}:ROUTING REMOVE:START:".format(dt.now(), job_id))
 
 		# Get the current entry which should be self. Call this old_best
 		old_best = self.get_best_entry_for_file(file_id)
@@ -173,14 +180,16 @@ class Table:
 		# Find the new best entry
 		new_best = self.get_best_entry_for_file(file_id)
 
-		logging.debug("{}:REMOVE:Old best = {}, New Best = {}, neighbours = {}".format(
-			dt.now(), old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip))
+		logging.debug("{}:JOB ID {}:ROUTING REMOVE:END:old_best = {}, new_best = {}, neighbours = {}".format(
+			dt.now(), job_id, old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip))
 		)
 
 		# Broadcast this entry
 		return old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip)
 
 	def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry, job_id):
+		logging.debug("{}:JOB ID {}:ROUTING DEL:START:".format(dt.now(), job_id))
+
 		# Find set for condition 1
 		old_clocks = self.get_entries_for_file(file_id)
 
@@ -195,17 +204,17 @@ class Table:
 
 		ret = {RequestType.DELETE.name: {}, RequestType.ADD.name: {}}
 
-		logging.debug("{}:DEL:Old entries = {}".format(dt.now(), old_clocks))
+		logging.debug("{}:JOB ID {}:ROUTING DEL:old_entries = {}".format(dt.now(), job_id, old_clocks))
 
 		# Check 1
 		if len(old_clocks) > 0:
+			logging.debug("{}:JOB ID {}:ROUTING DEL:BEFORE:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(self.entries[file_id].entries)))
+
 			# Remove the stale entries
 			for old_clock in old_clocks:
-				logging.debug(
-					"{} - BEFORE: my_entries for this file_id: {}".format(file_id, str(self.entries[file_id].entries)))
 				self.entries[file_id].delete_entry(old_clock)
-				logging.debug(
-					"{} - AFTER: my_entries for this file_id: {}".format(file_id, str(self.entries[file_id].entries)))
+
+			logging.debug("{}:JOB ID {}:ROUTING DEL:AFTER:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(self.entries[file_id].entries)))
 			# The new best
 			new_best = self.get_best_entry_for_file(file_id)
 
@@ -215,7 +224,7 @@ class Table:
 			ret[RequestType.DELETE.name]["new_best"] = new_best
 
 			# Send to neighbours
-			logging.debug("{}:DEL:Del broadcast = {}".format(dt.now(), ret[RequestType.DELETE.name]["neighbours"]))
+			logging.debug("{}:JOB ID {}:ROUTING DEL:DEL BROADCAST:neighbours = {}".format(dt.now(), job_id, ret[RequestType.DELETE.name]["neighbours"]))
 
 		else:
 			new_best = self.get_best_entry_for_file(file_id)
@@ -223,12 +232,12 @@ class Table:
 		if sender_ip in self.infra.get_spt_neighbours(self.my_ip, self.my_ip) \
 				and new_best[0] != file_id[1] \
 				and new_best != sender_entry:
-			logging.debug("{}:DEL:Add Return".format(dt.now()))
+			logging.debug("{}:JOB ID {}:ROUTING DEL:ADD RETURN:".format(dt.now(), job_id))
 
 			ret[RequestType.ADD.name]["ip"] = sender_ip
 			ret[RequestType.ADD.name]["new_best"] = new_best
 
-		logging.debug("{}:DEL: New Best = {}".format(dt.now(), new_best))
+		logging.debug("{}:JOB ID {}:ROUTING DEL:END:new_best = {}".format(dt.now(), job_id, new_best))
 		return ret
 
 	def get_snapshot(self):
@@ -248,7 +257,7 @@ class Table:
 			if int(fh) % self.n == self.node_mapping[self.my_ip]:
 				self.dht_ips[fh] = [deepcopy(self.src_ips[fh]['source'])]
 
-		logging.debug("{}: DHT IPS : {}".format(dt.now(), self.dht_ips))
+		logging.debug("{}:JOB ID {}:dht_ips = {}".format(dt.now(), job_id, self.dht_ips))
 
 	def get_ip_by_value(self, value):
 		for ip in self.node_mapping:
