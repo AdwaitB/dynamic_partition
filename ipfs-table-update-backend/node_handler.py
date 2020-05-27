@@ -80,11 +80,11 @@ def handler():
 
 def handle_dht(request_json):
     """
-	If subtype is request, Handles the DHT request for a file hash.
-	If the subtype is ack, Updated the list of source ips of the requesting node
-	:param request_json: The file hash and the ip of the requesting node
-	:return: set of nodes which have the ip
-	"""
+    If subtype is request, Handles the DHT request for a file hash.
+    If the subtype is ack, Updated the list of source ips of the requesting node
+    :param request_json: The file hash and the ip of the requesting node
+    :return: set of nodes which have the ip
+    """
     logging.debug("{}:JOB ID {}:HANDLE DHT:START:".format(dt.now(), request_json['job_id']))
 
     if request_json[SUBTYPE] == 'request':
@@ -104,10 +104,10 @@ def handle_dht(request_json):
 
 def handle_insert(request_json):
     """
-	Handles an INSERT Request. Inserts a new replica into the current node
-	:param request_json: json of the post method
-	:return: send_json that was sent to the peers, spt_children
-	"""
+    Handles an INSERT Request. Inserts a new replica into the current node
+    :param request_json: json of the post method
+    :return: send_json that was sent to the peers, spt_children
+    """
     logging.debug("{}:JOB ID {}:HANDLE INSERT:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -150,11 +150,11 @@ def handle_insert(request_json):
 
 def handle_add(request_json):
     """
-	Handles an ADD request. Updates the entries for the file in current node.
-	If this is better, then it also propogates the message to the nodes along the SPT.
-	:param request_json: json of the post method
-	:return: spt_children
-	"""
+    Handles an ADD request. Updates the entries for the file in current node.
+    If this is better, then it also propogates the message to the nodes along the SPT.
+    :param request_json: json of the post method
+    :return: spt_children
+    """
     logging.debug("{}:JOB ID {}:HANDLE ADD:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -190,10 +190,10 @@ def handle_add(request_json):
 
 def handle_remove(request_json):
     """
-	Handles an REMOVE request. Removes the entry for this node from the table and then broadcasts
-	:param request_json: json of the post method
-	:return: old_best_entry, new_best_entry, neighbours
-	"""
+    Handles an REMOVE request. Removes the entry for this node from the table and then broadcasts
+    :param request_json: json of the post method
+    :return: old_best_entry, new_best_entry, neighbours
+    """
     logging.debug("{}:JOB ID {}:HANDLE REMOVE:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -239,10 +239,10 @@ def handle_remove(request_json):
 
 def handle_del(request_json):
     """
-	Handles a del message.
-	:param request_json: json of the post method
-	:return: the add and del tasks
-	"""
+    Handles a del message.
+    :param request_json: json of the post method
+    :return: the add and del tasks
+    """
     logging.debug("{}:JOB ID {}:HANDLE DEL:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -356,8 +356,7 @@ def handle_control(request_json):
         with open(TRACES_FOLDER + 'traces.json', 'w') as json_file:
             json.dump(entries, json_file)
     elif request_json[SUBTYPE] == RequestSubtype.FINALIZE.name:
-	    executor.shutdown(wait=True)
-
+        executor.shutdown(wait=True)
         return 0
 
     return 0
