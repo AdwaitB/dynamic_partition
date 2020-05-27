@@ -355,8 +355,12 @@ def handle_control(request_json):
 
         with open(TRACES_FOLDER + 'traces.json', 'w') as json_file:
             json.dump(entries, json_file)
+    elif request_json[SUBTYPE] == RequestSubtype.FINALIZE.name:
+	    executor.shutdown(wait=True)
 
         return 0
+
+    return 0
 
 
 def handle_job(request_json):

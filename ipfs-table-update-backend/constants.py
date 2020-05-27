@@ -48,6 +48,7 @@ class RequestSubtype(Enum):
 	INIT = 0  # Initialization
 	FILE = 1  # File generation (Rename from copied)
 	WRITE_TRACE = 2  # Things to do after the experiments are over
+	FINALIZE = 3 # Wait for all the data update processes to complete
 
 
 class RequestAdd(Enum):

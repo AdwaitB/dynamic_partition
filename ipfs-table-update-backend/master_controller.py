@@ -193,6 +193,14 @@ def finalize_nodes():
 			"job_id": -1
 		})
 
+		finalize_json = {
+			TYPE: RequestType.CONTROL.name,
+			SUBTYPE: RequestSubtype.FINALIZE.name,
+			"job_id": -1
+		}
+
+		requests.post(generate_url(infra.get_ip_by_name(node)), json=finalize_json, timeout=HTTP_TIMEOUT)
+
 	post_multiple(ips, send_json_list, do_async)
 
 
