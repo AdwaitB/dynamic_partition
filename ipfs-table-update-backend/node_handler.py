@@ -114,11 +114,13 @@ def handle_insert(request_json):
 
     if request_json[FSIP] == table.my_ip:
         logging.debug("{}:JOB ID {}:HANDLE INSERT:END SHORT:".format(dt.now(), request_json['job_id']))
-        return {"send_json": "{}", "children": []}
+        return {"send_json": {}, "children": []}
 
+    logging.debug("{}:JOB ID {}:Before calling routing Insert".format(dt.now(), request_json['job_id']))
     spt_children, clock = table.handle_insert(
         (request_json[FH], request_json[FSIP]), request_json['job_id']
     )
+    logging.debug("{}:JOB ID {}:After calling routing Insert".format(dt.now(), request_json['job_id']))
 
     send_json = deepcopy(request_json)
     send_json[TYPE] = RequestType.ADD.name
@@ -129,10 +131,12 @@ def handle_insert(request_json):
     executor = None
     if do_async and len(spt_children) > 0:
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(spt_children))
+    logging.debug("{}:JOB ID {}:HANDLE INSERT:SEND TO CHILDREN: {}:".format(dt.now(), request_json['job_id'], spt_children))
     for neighbour in spt_children:
         if do_async:
             executor.submit(load_url, generate_url(neighbour), send_json)
         else:
+            logging.debug("{}:JOB ID {}:HANDLE INSERT:SEND TO {}:".format(dt.now(), request_json['job_id'], generate_url(neighbour)))
             my_session.post(generate_url(neighbour), json=send_json, timeout=HTTP_TIMEOUT)
 
     entries[Entries.INSERT_ENTRIES.name].append({

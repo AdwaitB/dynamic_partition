@@ -119,17 +119,25 @@ class Table:
 		:return: [list of neighbours], clock
 		"""
 
-		logging.debug("{}:JOB ID {}:ROUTING INSERT:START:".format(dt.now(), job_id))
+		if file_id in self.entries:
+			logging.debug("{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
+		else:
+			logging.debug("{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, 0))
+
 
 		self.parent_lock.acquire()
 		self.clock = self.clock + 1
 		if file_id in self.entries:
+			logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE BEFORE: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 			self.entries[file_id].update_entry((self.my_ip, self.clock))
+			logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE AFTER: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 		else:
+			logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE BEFORE: Entries {}".format(dt.now(), job_id, 0))
 			self.entries[file_id] = LockedEntry((self.my_ip, self.clock))
+			logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE AFTER: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 		self.parent_lock.release()
 
-		logging.debug("{}:JOB ID {}:ROUTING INSERT:END:".format(dt.now(), job_id))
+		logging.debug("{}:JOB ID {}:ROUTING INSERT:END: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 
 		return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
 
