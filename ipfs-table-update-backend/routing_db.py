@@ -129,7 +129,7 @@ class Table:
 			self.entries[file_id] = LockedEntry((self.my_ip, self.clock))
 		self.parent_lock.release()
 
-		logging.debug("{}:JOB ID {}:ROUTING ADD:END:".format(dt.now(), job_id))
+		logging.debug("{}:JOB ID {}:ROUTING INSERT:END:".format(dt.now(), job_id))
 
 		return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
 
