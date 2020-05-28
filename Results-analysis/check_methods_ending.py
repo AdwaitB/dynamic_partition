@@ -1,6 +1,6 @@
 import os
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Debug/Renater5000_1s/transient5000_1s"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater20000Jobs_cache10/transient"
 # Get nbr of messages for AAA algo:
 os.chdir(path+"/new")
 dict_of_nbr_of_messages = {}

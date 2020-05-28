@@ -9,82 +9,85 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class LockedEntry:
-	def __init__(self, entry):
-		self.entries = set()
-		self.entries.add(entry)
+    def __init__(self, entry):
+        self.entries = set()
+        self.entries.add(entry)
 
-		self.lock = threading.Lock()
+        self.lock = threading.Lock()
 
-	def get_entries(self):
-		return copy.deepcopy(self.entries)
+    def get_entries(self):
+        return copy.deepcopy(self.entries)
 
-	def update_entry(self, entry, job_id):
-		logging.debug("{}:JOB ID {}: UPDATE_ENTRY Waiting for lock".format(dt.now(), job_id))
-		self.lock.acquire()
-		logging.debug("{}:JOB ID {}: UPDATE_ENTRY Lock aquired".format(dt.now(), job_id))
-		self.entries.add(entry)
-		self.lock.release()
-		logging.debug("{}:JOB ID {}: UPDATE_ENTRY lock released".format(dt.now(), job_id))
-		return 0
+    def update_entry(self, entry, job_id):
+        logging.debug("{}:JOB ID {}: UPDATE_ENTRY Waiting for lock".format(dt.now(), job_id))
+        self.lock.acquire()
+        logging.debug("{}:JOB ID {}: UPDATE_ENTRY Lock aquired".format(dt.now(), job_id))
+        self.entries.add(entry)
+        self.lock.release()
+        logging.debug("{}:JOB ID {}: UPDATE_ENTRY lock released".format(dt.now(), job_id))
+        return 0
 
-	def delete_entry(self, entry, job_id):
-		logging.debug("{}:JOB ID {}: DELETE_ENTRY Waiting for lock".format(dt.now(), job_id))
-		self.lock.acquire()
-		logging.debug("{}:JOB ID {}: DELETE_ENTRY Lock aquired".format(dt.now(), job_id))
-		self.entries.discard(entry)  # Use 'discard' instead of remove, as it can throw an exception and create a DEADLOCK if not catched.
-		self.lock.release()
-		logging.debug("{}:JOB ID {}: DELETE_ENTRY lock released".format(dt.now(), job_id))
-		return 0
+    def delete_entry(self, entry, job_id):
+        logging.debug("{}:JOB ID {}: DELETE_ENTRY Waiting for lock".format(dt.now(), job_id))
+        self.lock.acquire()
+        logging.debug("{}:JOB ID {}: DELETE_ENTRY Lock aquired".format(dt.now(), job_id))
+        self.entries.discard(
+            entry)  # Use 'discard' instead of remove, as it can throw an exception and create a DEADLOCK if not catched.
+        self.lock.release()
+        logging.debug("{}:JOB ID {}: DELETE_ENTRY lock released".format(dt.now(), job_id))
+        return 0
 
-	def is_empty(self):
-		return len(self.entries) == 0
+    def is_empty(self):
+        return len(self.entries) == 0
 
 
 class Table:
-	def __init__(self):
-		self.entries = {}  # <file_id, LockedEntry>
-		self.parent_lock = threading.Lock()  # Master lock while deleting and adding
-		self.clock = 0
+    def __init__(self):
+        self.entries = {}  # <file_id, LockedEntry>
+        self.parent_lock = threading.Lock()  # Master lock while deleting and adding
+        self.clock = 0
 
-		self.infra = Infra()
+        self.infra = Infra()
 
-		self.my_ip = LOCALHOST
-		self.master_ip = self.infra.get_ip_by_name("master")
+        self.my_ip = LOCALHOST
+        self.master_ip = self.infra.get_ip_by_name("master")
 
-		self.src_ips = {}
-		self.dht_ips = {}
+        self.src_ips = {}
+        self.dht_ips = {}
 
-		self.node_mapping = {}
+        self.node_mapping = {}
 
-		self.n = len(self.infra.get_nodes())
+        self.n = len(self.infra.get_nodes())
 
-	def update_my_ip(self, ip):
-		self.my_ip = ip
+        self.atomic = {}
 
-	def get_entries_for_file(self, file_id):
-		if file_id in self.entries:
-			return self.entries[file_id].get_entries()
-		else:
-			return []
+    def update_my_ip(self, ip):
+        self.my_ip = ip
 
-	def remove_entry_for_file(self, file_id, entry, job_id):
-		if file_id not in self.entries:
-			return 1
-		else:
-			logging.debug("{}:JOB ID {}: REMOVE_ENTRY Before DELETE_ENTRY".format(dt.now(), job_id))
-			self.entries[file_id].delete_entry(entry, job_id)
-			logging.debug("{}:JOB ID {}: REMOVE_ENTRY After DELETE_ENTRY".format(dt.now(), job_id))
+    def get_entries_for_file(self, file_id):
+        if file_id in self.entries:
+            return self.entries[file_id].get_entries()
+        else:
+            return []
 
-			logging.debug("{}:JOB ID {}: REMOVE_ENTRY Waiting for parent_lock".format(dt.now(), job_id))
-			self.parent_lock.acquire()
-			logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock acquired".format(dt.now(), job_id))
-			if self.entries[file_id].is_empty():
-				del self.entries[file_id]
-			self.parent_lock.release()
-			logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock released".format(dt.now(), job_id))
+    def remove_entry_for_file(self, file_id, entry, job_id):
+        if file_id not in self.entries:
+            return 1
+        else:
+            logging.debug("{}:JOB ID {}: REMOVE_ENTRY Before DELETE_ENTRY".format(dt.now(), job_id))
+            self.entries[file_id].delete_entry(entry, job_id)
+            logging.debug("{}:JOB ID {}: REMOVE_ENTRY After DELETE_ENTRY".format(dt.now(), job_id))
 
-	def update_entries_for_file(self, file_id, entry, job_id):
-		"""
+            logging.debug("{}:JOB ID {}: REMOVE_ENTRY Waiting for parent_lock".format(dt.now(), job_id))
+            self.parent_lock.acquire()
+            logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock acquired".format(dt.now(), job_id))
+            if self.entries[file_id].is_empty():
+                del self.entries[file_id]
+            self.parent_lock.release()
+            logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock released".format(dt.now(), job_id))
+
+    def update_entries_for_file(self, file_id, entry, job_id):
+        """
 		Updates the entries for a file.
 		If the file doesn't exist (in case a replica is added to some other node which is nearer),
 			then the file is added to entries
@@ -93,34 +96,44 @@ class Table:
 		:param entry: The entry to be updated
 		:return:
 		"""
-		if file_id in self.entries:
-			self.entries[file_id].update_entry(entry, job_id)
-		else:
-			self.entries[file_id] = LockedEntry(entry)
+        if file_id in self.entries:
+            self.entries[file_id].update_entry(entry, job_id)
+        else:
+            self.entries[file_id] = LockedEntry(entry)
 
-	def get_best_entry_for_file(self, file_id):
-		"""
+    def get_best_entry_for_file(self, file_id):
+        """
 		Gets the nearest replica or source of the file id provided
 		:param file_id: <file_hash, source_ip>
 		:return: An entry <ip, clock> of the closest replica
 		"""
-		# Initialize entry to source
-		src_ip = file_id[1]
-		ret = (src_ip, 0)
-		min_dist = self.infra.shortest_path_dist[src_ip][self.my_ip]
+        # Initialize entry to source
+        src_ip = file_id[1]
+        ret = (src_ip, 0)
+        min_dist = self.infra.shortest_path_dist[src_ip][self.my_ip]
 
-		if file_id in self.entries:
-			entries = self.get_entries_for_file(file_id)
-			for entry in entries:
-				replica_ip = entry[0]
-				if self.infra.shortest_path_dist[replica_ip][self.my_ip] < min_dist:
-					ret = entry
-					min_dist = self.infra.shortest_path_dist[replica_ip][self.my_ip]
+        if file_id in self.entries:
+            entries = self.get_entries_for_file(file_id)
+            for entry in entries:
+                replica_ip = entry[0]
+                if self.infra.shortest_path_dist[replica_ip][self.my_ip] < min_dist:
+                    ret = entry
+                    min_dist = self.infra.shortest_path_dist[replica_ip][self.my_ip]
 
-		return ret
+        return ret
 
-	def handle_insert(self, file_id, job_id):
-		"""
+    def get_lock_for_hash(self, file_id):
+        if file_id not in self.atomic:
+            self.atomic[file_id] = threading.Lock()
+        self.atomic[file_id].acquire()
+
+    def release_lock_for_hash(self, file_id):
+        if file_id not in self.atomic:
+            logging.debug("{}:BUG: No lock entries for this file hash {}".format(dt.now(), file_id))
+        self.atomic[file_id].release()
+
+    def handle_insert(self, file_id, job_id):
+        """
 		Handles the insert of file in current node.
 		Creates a new entry of file if file doesnt already exists and returns SPT neighbours
 			rooted at this node for replica propogation
@@ -129,31 +142,38 @@ class Table:
 		:param file_id: <file_hash, file_source> pair
 		:return: [list of neighbours], clock
 		"""
+        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
-		if file_id in self.entries:
-			logging.debug("{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
-		else:
-			logging.debug("{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, 0))
+        if file_id in self.entries:
+            logging.debug(
+                "{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
+        else:
+            logging.debug("{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, 0))
 
+        self.parent_lock.acquire()
+        self.clock = self.clock + 1
+        if file_id in self.entries:
+            logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE BEFORE: Entries {}".format(dt.now(), job_id,
+                                                                                         self.entries[file_id].entries))
+            self.entries[file_id].update_entry((self.my_ip, self.clock), job_id)
+            logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE AFTER: Entries {}".format(dt.now(), job_id,
+                                                                                        self.entries[file_id].entries))
+        else:
+            logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE BEFORE: Entries {}".format(dt.now(), job_id, 0))
+            self.entries[file_id] = LockedEntry((self.my_ip, self.clock))
+            logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE AFTER: Entries {}".format(dt.now(), job_id,
+                                                                                        self.entries[file_id].entries))
+        self.parent_lock.release()
 
-		self.parent_lock.acquire()
-		self.clock = self.clock + 1
-		if file_id in self.entries:
-			logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE BEFORE: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
-			self.entries[file_id].update_entry((self.my_ip, self.clock), job_id)
-			logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE AFTER: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
-		else:
-			logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE BEFORE: Entries {}".format(dt.now(), job_id, 0))
-			self.entries[file_id] = LockedEntry((self.my_ip, self.clock))
-			logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE AFTER: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
-		self.parent_lock.release()
+        logging.debug(
+            "{}:JOB ID {}:ROUTING INSERT:END: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 
-		logging.debug("{}:JOB ID {}:ROUTING INSERT:END: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
+        self.release_lock_for_hash(file_id)  # Ensure atomicity
 
-		return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
+        return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
 
-	def handle_add(self, file_id, remote_entry, job_id):
-		"""
+    def handle_add(self, file_id, remote_entry, job_id):
+        """
 		Handles the add message received from other node
 		Returns the list of SPT neighbours to send an update to.
 		This list is empty if the remote entry is not better than what is already present
@@ -161,125 +181,145 @@ class Table:
 		:param remote_entry: <ip, clock> for the added file
 		:return: [list of neighbours]
 		"""
-		logging.debug("{}:JOB ID {}:ROUTING ADD:START:".format(dt.now(), job_id))
+        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
-		# Find the best location of this object. Can be source and not necessary that this object has an entry.
-		best = self.get_best_entry_for_file(file_id)
+        logging.debug("{}:JOB ID {}:ROUTING ADD:START:".format(dt.now(), job_id))
 
-		logging.debug("{}:JOB ID {}:ROUTING ADD:current_best = {}".format(dt.now(), job_id, best))
+        # Find the best location of this object. Can be source and not necessary that this object has an entry.
+        best = self.get_best_entry_for_file(file_id)
 
-		# If the best distance is not better than what was passed to function, update the table
-		if self.infra.shortest_path_dist[best[0]][self.my_ip] > self.infra.shortest_path_dist[remote_entry[0]][
-			self.my_ip]:
-			# This entry is better, add this to the local set
-			logging.debug(
-				"{}:JOB ID {}:ROUTING ADD:new_entry_added = (file_id = {}, remote_entry = {})".format(dt.now(), job_id, file_id, remote_entry))
-			self.update_entries_for_file(file_id, remote_entry, job_id)
+        logging.debug("{}:JOB ID {}:ROUTING ADD:current_best = {}".format(dt.now(), job_id, best))
 
-			# Return a list of neighbours that need to be notified
-			return self.infra.get_spt_neighbours(remote_entry[0], self.my_ip)
+        # If the best distance is not better than what was passed to function, update the table
+        if self.infra.shortest_path_dist[best[0]][self.my_ip] > self.infra.shortest_path_dist[remote_entry[0]][
+            self.my_ip]:
+            # This entry is better, add this to the local set
+            logging.debug(
+                "{}:JOB ID {}:ROUTING ADD:new_entry_added = (file_id = {}, remote_entry = {})".format(dt.now(), job_id,
+                                                                                                      file_id,
+                                                                                                      remote_entry))
+            self.update_entries_for_file(file_id, remote_entry, job_id)
 
-		# This entry is not better, do not update any neighbouring nodes
-		return []
+            # Return a list of neighbours that need to be notified
+            self.release_lock_for_hash(file_id)  # Ensure atomicity
+            return self.infra.get_spt_neighbours(remote_entry[0], self.my_ip)
 
-	def handle_remove(self, file_id, job_id):
-		"""
+        # This entry is not better, do not update any neighbouring nodes
+        self.release_lock_for_hash(file_id)  # Ensure atomicity
+        return []
+
+    def handle_remove(self, file_id, job_id):
+        """
 		Handle a remove statements
 		:param file_id: <file_hash, file_source> pair
 		:return: old_best, new_best, broadcast_neighbours
 		"""
-		logging.debug("{}:JOB ID {}:ROUTING REMOVE:START:".format(dt.now(), job_id))
+        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
-		# Get the current entry which should be self. Call this old_best
-		old_best = self.get_best_entry_for_file(file_id)
+        logging.debug("{}:JOB ID {}:ROUTING REMOVE:START:".format(dt.now(), job_id))
 
-		# Remove this entry
-		self.remove_entry_for_file(file_id, old_best, job_id)
+        # Get the current entry which should be self. Call this old_best
+        old_best = self.get_best_entry_for_file(file_id)
 
-		# Find the new best entry
-		new_best = self.get_best_entry_for_file(file_id)
+        # Remove this entry
+        self.remove_entry_for_file(file_id, old_best, job_id)
 
-		logging.debug("{}:JOB ID {}:ROUTING REMOVE:END:old_best = {}, new_best = {}, neighbours = {}".format(
-			dt.now(), job_id, old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip))
-		)
+        # Find the new best entry
+        new_best = self.get_best_entry_for_file(file_id)
 
-		# Broadcast this entry
-		return old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip)
+        logging.debug("{}:JOB ID {}:ROUTING REMOVE:END:old_best = {}, new_best = {}, neighbours = {}".format(
+            dt.now(), job_id, old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip))
+        )
 
-	def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry, job_id):
-		logging.debug("{}:JOB ID {}:ROUTING DEL:START:".format(dt.now(), job_id))
+        # Broadcast this entry
+        self.release_lock_for_hash(file_id)  # Ensure atomicity
+        return old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip)
 
-		# Find set for condition 1
-		old_clocks = self.get_entries_for_file(file_id)
+    def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry, job_id):
 
-		# Remove entries from this list which have a newer clock (as we do not delete those)
-		# This is the contrapositive of the condition in the doc. We remove here the entries that are not be deleted
-		#   from the alive set
-		for old_clock in self.get_entries_for_file(file_id):
-			if old_clock[1] > remove_src_entry[1] or old_clock[0] != remove_src_entry[0]:
-				old_clocks.remove(old_clock)
+        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
-		# olc_clocks satisfies 1
+        logging.debug("{}:JOB ID {}:ROUTING DEL:START:".format(dt.now(), job_id))
 
-		ret = {RequestType.DELETE.name: {}, RequestType.ADD.name: {}}
+        # Find set for condition 1
+        old_clocks = self.get_entries_for_file(file_id)
 
-		logging.debug("{}:JOB ID {}:ROUTING DEL:old_entries = {}".format(dt.now(), job_id, old_clocks))
+        # Remove entries from this list which have a newer clock (as we do not delete those)
+        # This is the contrapositive of the condition in the doc. We remove here the entries that are not be deleted
+        #   from the alive set
+        for old_clock in self.get_entries_for_file(file_id):
+            if old_clock[1] > remove_src_entry[1] or old_clock[0] != remove_src_entry[0]:
+                old_clocks.remove(old_clock)
 
-		# Check 1
-		if len(old_clocks) > 0:
-			logging.debug("{}:JOB ID {}:ROUTING DEL:BEFORE:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(self.entries[file_id].entries)))
+        # olc_clocks satisfies 1
 
-			# Remove the stale entries
-			for old_clock in old_clocks:
-				self.entries[file_id].delete_entry(old_clock, job_id)
+        ret = {RequestType.DELETE.name: {}, RequestType.ADD.name: {}}
 
-			logging.debug("{}:JOB ID {}:ROUTING DEL:AFTER:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(self.entries[file_id].entries)))
-			# The new best
-			new_best = self.get_best_entry_for_file(file_id)
+        logging.debug("{}:JOB ID {}:ROUTING DEL:old_entries = {}".format(dt.now(), job_id, old_clocks))
 
-			ret[RequestType.DELETE.name]["neighbours"] = self.infra.get_broadcast_neighbours(self.my_ip)
-			if new_best == sender_entry:
-				ret[RequestType.DELETE.name]["neighbours"].remove(sender_ip)
-			ret[RequestType.DELETE.name]["new_best"] = new_best
+        # Check 1
+        if len(old_clocks) > 0:
+            logging.debug(
+                "{}:JOB ID {}:ROUTING DEL:BEFORE:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(
+                    self.entries[file_id].entries)))
 
-			# Send to neighbours
-			logging.debug("{}:JOB ID {}:ROUTING DEL:DEL BROADCAST:neighbours = {}".format(dt.now(), job_id, ret[RequestType.DELETE.name]["neighbours"]))
+            # Remove the stale entries
+            for old_clock in old_clocks:
+                self.entries[file_id].delete_entry(old_clock, job_id)
 
-		else:
-			new_best = self.get_best_entry_for_file(file_id)
+            logging.debug(
+                "{}:JOB ID {}:ROUTING DEL:AFTER:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(
+                    self.entries[file_id].entries)))
+            # The new best
+            new_best = self.get_best_entry_for_file(file_id)
 
-		if sender_ip in self.infra.get_spt_neighbours(self.my_ip, self.my_ip) \
-				and new_best[0] != file_id[1] \
-				and new_best != sender_entry:
-			logging.debug("{}:JOB ID {}:ROUTING DEL:ADD RETURN:".format(dt.now(), job_id))
+            ret[RequestType.DELETE.name]["neighbours"] = self.infra.get_broadcast_neighbours(self.my_ip)
+            if new_best == sender_entry:
+                ret[RequestType.DELETE.name]["neighbours"].remove(sender_ip)
+            ret[RequestType.DELETE.name]["new_best"] = new_best
 
-			ret[RequestType.ADD.name]["ip"] = sender_ip
-			ret[RequestType.ADD.name]["new_best"] = new_best
+            # Send to neighbours
+            logging.debug("{}:JOB ID {}:ROUTING DEL:DEL BROADCAST:neighbours = {}".format(dt.now(), job_id,
+                                                                                          ret[RequestType.DELETE.name][
+                                                                                              "neighbours"]))
 
-		logging.debug("{}:JOB ID {}:ROUTING DEL:END:new_best = {}".format(dt.now(), job_id, new_best))
-		return ret
+        else:
+            new_best = self.get_best_entry_for_file(file_id)
 
-	def get_snapshot(self):
-		ret = {}
+        if sender_ip in self.infra.get_spt_neighbours(self.my_ip, self.my_ip) \
+                and new_best[0] != file_id[1] \
+                and new_best != sender_entry:
+            logging.debug("{}:JOB ID {}:ROUTING DEL:ADD RETURN:".format(dt.now(), job_id))
 
-		for file_id in self.entries:
-			ret[file_id[0]] = {}
-			ret[file_id[0]]['entries'] = list(self.entries[file_id].get_entries())
-			ret[file_id[0]]['src'] = file_id[1]
+            ret[RequestType.ADD.name]["ip"] = sender_ip
+            ret[RequestType.ADD.name]["new_best"] = new_best
 
-		ret['dht_ips'] = self.dht_ips
+        logging.debug("{}:JOB ID {}:ROUTING DEL:END:new_best = {}".format(dt.now(), job_id, new_best))
 
-		return ret
+        self.release_lock_for_hash(file_id)  # Ensure atomicity
+        return ret
 
-	def generate_dht_src(self):
-		for fh in self.src_ips:
-			if int(fh) % self.n == self.node_mapping[self.my_ip]:
-				self.dht_ips[fh] = [deepcopy(self.src_ips[fh]['source'])]
+    def get_snapshot(self):
+        ret = {}
 
-		logging.debug("{}:dht_ips = {}".format(dt.now(), self.dht_ips))
+        for file_id in self.entries:
+            ret[file_id[0]] = {}
+            ret[file_id[0]]['entries'] = list(self.entries[file_id].get_entries())
+            ret[file_id[0]]['src'] = file_id[1]
 
-	def get_ip_by_value(self, value):
-		for ip in self.node_mapping:
-			if self.node_mapping[ip] == value:
-				return ip
-		return LOCALHOST
+        ret['dht_ips'] = self.dht_ips
+
+        return ret
+
+    def generate_dht_src(self):
+        for fh in self.src_ips:
+            if int(fh) % self.n == self.node_mapping[self.my_ip]:
+                self.dht_ips[fh] = [deepcopy(self.src_ips[fh]['source'])]
+
+        logging.debug("{}:dht_ips = {}".format(dt.now(), self.dht_ips))
+
+    def get_ip_by_value(self, value):
+        for ip in self.node_mapping:
+            if self.node_mapping[ip] == value:
+                return ip
+        return LOCALHOST
