@@ -286,7 +286,7 @@ class Table:
         else:
             new_best = self.get_best_entry_for_file(file_id)
 
-        if sender_ip in self.infra.get_spt_neighbours(self.my_ip, self.my_ip) \
+        if sender_ip in self.infra.get_spt_neighbours(new_best[0], self.my_ip) \
                 and new_best[0] != file_id[1] \
                 and new_best != sender_entry:
             logging.debug("{}:JOB ID {}:ROUTING DEL:ADD RETURN:".format(dt.now(), job_id))
