@@ -31,7 +31,7 @@ class LockedEntry:
 		logging.debug("{}:JOB ID {}: DELETE_ENTRY Waiting for lock".format(dt.now(), job_id))
 		self.lock.acquire()
 		logging.debug("{}:JOB ID {}: DELETE_ENTRY Lock aquired".format(dt.now(), job_id))
-		self.entries.remove(entry)
+		self.entries.discard(entry)  # Use 'discard' instead of remove, as it can throw an exception and create a DEADLOCK if not catched.
 		self.lock.release()
 		logging.debug("{}:JOB ID {}: DELETE_ENTRY lock released".format(dt.now(), job_id))
 		return 0
