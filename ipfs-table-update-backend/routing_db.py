@@ -18,16 +18,22 @@ class LockedEntry:
 	def get_entries(self):
 		return copy.deepcopy(self.entries)
 
-	def update_entry(self, entry):
+	def update_entry(self, entry, job_id):
+		logging.debug("{}:JOB ID {}: UPDATE_ENTRY Waiting for lock".format(dt.now(), job_id))
 		self.lock.acquire()
+		logging.debug("{}:JOB ID {}: UPDATE_ENTRY Lock aquired".format(dt.now(), job_id))
 		self.entries.add(entry)
 		self.lock.release()
+		logging.debug("{}:JOB ID {}: UPDATE_ENTRY lock released".format(dt.now(), job_id))
 		return 0
 
-	def delete_entry(self, entry):
+	def delete_entry(self, entry, job_id):
+		logging.debug("{}:JOB ID {}: DELETE_ENTRY Waiting for lock".format(dt.now(), job_id))
 		self.lock.acquire()
+		logging.debug("{}:JOB ID {}: DELETE_ENTRY Lock aquired".format(dt.now(), job_id))
 		self.entries.remove(entry)
 		self.lock.release()
+		logging.debug("{}:JOB ID {}: DELETE_ENTRY lock released".format(dt.now(), job_id))
 		return 0
 
 	def is_empty(self):
@@ -61,18 +67,23 @@ class Table:
 		else:
 			return []
 
-	def remove_entry_for_file(self, file_id, entry):
+	def remove_entry_for_file(self, file_id, entry, job_id):
 		if file_id not in self.entries:
 			return 1
 		else:
-			self.entries[file_id].delete_entry(entry)
+			logging.debug("{}:JOB ID {}: REMOVE_ENTRY Before DELETE_ENTRY".format(dt.now(), job_id))
+			self.entries[file_id].delete_entry(entry, job_id)
+			logging.debug("{}:JOB ID {}: REMOVE_ENTRY After DELETE_ENTRY".format(dt.now(), job_id))
 
+			logging.debug("{}:JOB ID {}: REMOVE_ENTRY Waiting for parent_lock".format(dt.now(), job_id))
 			self.parent_lock.acquire()
+			logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock acquired".format(dt.now(), job_id))
 			if self.entries[file_id].is_empty():
 				del self.entries[file_id]
 			self.parent_lock.release()
+			logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock released".format(dt.now(), job_id))
 
-	def update_entries_for_file(self, file_id, entry):
+	def update_entries_for_file(self, file_id, entry, job_id):
 		"""
 		Updates the entries for a file.
 		If the file doesn't exist (in case a replica is added to some other node which is nearer),
@@ -83,7 +94,7 @@ class Table:
 		:return:
 		"""
 		if file_id in self.entries:
-			self.entries[file_id].update_entry(entry)
+			self.entries[file_id].update_entry(entry, job_id)
 		else:
 			self.entries[file_id] = LockedEntry(entry)
 
@@ -129,7 +140,7 @@ class Table:
 		self.clock = self.clock + 1
 		if file_id in self.entries:
 			logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE BEFORE: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
-			self.entries[file_id].update_entry((self.my_ip, self.clock))
+			self.entries[file_id].update_entry((self.my_ip, self.clock), job_id)
 			logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE AFTER: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 		else:
 			logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE BEFORE: Entries {}".format(dt.now(), job_id, 0))
@@ -163,7 +174,7 @@ class Table:
 			# This entry is better, add this to the local set
 			logging.debug(
 				"{}:JOB ID {}:ROUTING ADD:new_entry_added = (file_id = {}, remote_entry = {})".format(dt.now(), job_id, file_id, remote_entry))
-			self.update_entries_for_file(file_id, remote_entry)
+			self.update_entries_for_file(file_id, remote_entry, job_id)
 
 			# Return a list of neighbours that need to be notified
 			return self.infra.get_spt_neighbours(remote_entry[0], self.my_ip)
@@ -183,7 +194,7 @@ class Table:
 		old_best = self.get_best_entry_for_file(file_id)
 
 		# Remove this entry
-		self.remove_entry_for_file(file_id, old_best)
+		self.remove_entry_for_file(file_id, old_best, job_id)
 
 		# Find the new best entry
 		new_best = self.get_best_entry_for_file(file_id)
@@ -220,7 +231,7 @@ class Table:
 
 			# Remove the stale entries
 			for old_clock in old_clocks:
-				self.entries[file_id].delete_entry(old_clock)
+				self.entries[file_id].delete_entry(old_clock, job_id)
 
 			logging.debug("{}:JOB ID {}:ROUTING DEL:AFTER:file_id = {}: my_entries = {}".format(dt.now(), job_id, file_id, str(self.entries[file_id].entries)))
 			# The new best
