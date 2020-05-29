@@ -131,9 +131,6 @@ def handle_insert(request_json):
     send_json[RequestAdd.entry_clock.name] = clock
     send_json['job_id'] = request_json['job_id']
 
-    executor = None
-    if do_async and len(spt_children) > 0:
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(spt_children))
     logging.debug("{}:JOB ID {}:HANDLE INSERT:SEND TO CHILDREN: {}:".format(dt.now(), request_json['job_id'], spt_children))
     for neighbour in spt_children:
         if do_async:
@@ -172,9 +169,6 @@ def handle_add(request_json):
         request_json['job_id']
     )
 
-    executor = None
-    if do_async and len(spt_children) > 0:
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(spt_children))
     for neighbour in spt_children:
         logging.debug(
             "{}:JOB ID {}:HANDLE ADD:NEIGHBOURS:neighbours = {}".format(dt.now(), request_json['job_id'], neighbour))
@@ -218,9 +212,6 @@ def handle_remove(request_json):
     send_json[RequestDel.sender_entry_clock.name] = new_best_entry[1]
     send_json['job_id'] = request_json['job_id']
 
-    executor = None
-    if do_async and len(neighbours) > 0:
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(neighbours))
     for neighbour in neighbours:
         logging.debug("{}:JOB ID {}:HANDLE REMOVE:NEIGHBOURS:neighbours = {}, send_json = {}".format(
             dt.now(), request_json['job_id'], neighbour, send_json)
@@ -267,10 +258,6 @@ def handle_del(request_json):
         total += len(tasks[RequestType.DELETE.name]["neighbours"])
     if tasks[RequestType.ADD.name]:
         total += 1
-
-    executor = None
-    if do_async and total > 0:
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=total)
 
     if tasks[RequestType.DELETE.name]:
         send_json = {
