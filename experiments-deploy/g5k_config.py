@@ -1,9 +1,10 @@
 import os
 import string
 import subprocess
+
 from enoslib.infra.enos_g5k.configuration import Configuration, NetworkConfiguration
 from enoslib.infra.enos_g5k.provider import G5k
-from infra import g5k_cluster, g5k_loc, g5k_image
+from .infra import g5k_cluster, g5k_loc, g5k_image
 
 
 class G5KProvider:

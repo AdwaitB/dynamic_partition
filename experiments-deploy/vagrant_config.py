@@ -1,6 +1,7 @@
 from enoslib.infra.enos_vagrant.configuration import Configuration
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
-from infra import vagrant_image
+
+from .infra import vagrant_image
 
 
 class VagrantProvider:

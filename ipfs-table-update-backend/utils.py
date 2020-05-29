@@ -1,8 +1,10 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 import requests
+
+from .constants import *
+
 logging.basicConfig(level=logging.DEBUG)
-from constants import *
 
 
 def append_entry(d, name, value):
