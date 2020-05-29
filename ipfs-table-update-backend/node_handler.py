@@ -18,6 +18,7 @@ table = Table()
 
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=N_THREADS)
 my_cache = LRUCache(MAX_CACHE_SIZE)
+ongoing_downloads = set()
 
 entries = {
     Entries.INSERT_ENTRIES.name: [],
@@ -367,11 +368,19 @@ def handle_control(request_json):
 
 
 def handle_job(request_json):
+    global ongoing_downloads
     logging.debug("{}:JOB ID {}:HANDLE JOB:START:".format(dt.now(), request_json['job_id']))
 
     # First check if file exists
     if os.path.exists(FILE_FOLDER + str(request_json[FH])) or os.path.exists(FILE_CACHE + str(request_json[FH])):
         return {"time_download": 0, "req_time": 0, "ignore": 1}
+
+    # Check if download is not already ongoing
+    if request_json[FH] in ongoing_downloads:
+        logging.debug("{}:JOB ID {}:Download already ongoing:".format(dt.now(), request_json['job_id']))
+        return {"time_download": 0, "req_time": 0, "ignore": 1}
+
+    ongoing_downloads.add(request_json[FH])
 
     if request_json['iter'] == "new":
         req_time, download_time, ip = do_new_query(request_json)
@@ -379,6 +388,8 @@ def handle_job(request_json):
         req_time, download_time, ip = do_dht_query(request_json)
 
     logging.debug("{}:JOB ID {}:HANDLE JOB:END:".format(dt.now(), request_json['job_id']))
+
+    ongoing_downloads.discard(request_json[FH])
 
     return {"time_download": download_time, "req_time": req_time, "ignore": 0}
 
