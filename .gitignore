@@ -1,1 +1,5 @@
 .idea
+traces
+request-data
+http-archive
+*.pdf
