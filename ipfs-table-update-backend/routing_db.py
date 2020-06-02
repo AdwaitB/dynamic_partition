@@ -153,6 +153,7 @@ class Table:
 
         self.parent_lock.acquire()
         self.clock = self.clock + 1
+        clock_for_this_insert = self.clock
         if file_id in self.entries:
             logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE BEFORE: Entries {}".format(dt.now(), job_id,
                                                                                          self.entries[file_id].entries))
@@ -171,7 +172,7 @@ class Table:
 
         self.release_lock_for_hash(file_id)  # Ensure atomicity
 
-        return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), self.clock
+        return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), clock_for_this_insert
 
     def handle_add(self, file_id, remote_entry, job_id):
         """
