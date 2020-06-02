@@ -4,13 +4,12 @@ import logging
 from pprint import pprint as pp
 
 from enoslib.task import enostask
-
-from .infra import *
-from .parse_gml import generate_dict_from_yml
-from .playbook import *
-from .post_processing import *
-from .provider_proxy import *
-from .utils_xp import *
+from infra import *
+from parse_gml import generate_dict_from_yml
+from playbook import *
+from post_processing import *
+from provider_proxy import *
+from utils_xp import *
 
 logging.basicConfig(level=logging.DEBUG)
 

@@ -3,8 +3,7 @@ import logging
 import threading
 from copy import deepcopy
 from datetime import datetime as dt
-
-from .infra_parser import *
+from infra_parser import *
 
 logging.basicConfig(level=logging.DEBUG)
 

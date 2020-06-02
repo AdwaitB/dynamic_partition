@@ -1,7 +1,6 @@
 import json
 import os
 import time
-
 from enoslib.api import run_ansible
 
 

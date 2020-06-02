@@ -3,13 +3,11 @@ import random
 import sched
 import sys
 import time
-
 import pandas
 from matplotlib import pyplot as plt
+from infra_parser import *
+from utils import *
 from datetime import datetime as dt
-
-from .infra_parser import *
-from .utils import *
 
 logging.basicConfig(level=logging.DEBUG)
 
