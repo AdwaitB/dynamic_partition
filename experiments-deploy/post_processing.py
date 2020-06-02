@@ -6,18 +6,18 @@ from matplotlib import pyplot as plt
 
 
 @enostask()
-def merge_traces(env=None):
+def merge_traces(cache_size, env=None):
 	alias = Infra.get_alias_by_name(env["roles"], "master")
 
-	csvdht = pd.read_csv("./transient/dht/{}/root/deploy/traces/traces_dht.csv".format(alias))
-	csvnew = pd.read_csv("./transient/new/{}/root/deploy/traces/traces_new.csv".format(alias))
+	csvdht = pd.read_csv("./transient/dht-{}/{}/root/deploy/traces/traces_dht-{}.csv".format(cache_size, alias, cache_size))
+	csvnew = pd.read_csv("./transient/new-{}/{}/root/deploy/traces/traces_new-{}.csv".format(cache_size, alias, cache_size))
 
 	csv = pd.merge(csvdht, csvnew, on='Job ID', suffixes=(' DHT', ' NEW'))
-	csv.to_csv("./transient/traces.csv")
+	csv.to_csv("./transient/traces-{}.csv".format(cache_size))
 
 	csv = csv[['Size (B) DHT', 'Time Download DHT', 'Time Request DHT', 'Total Time DHT',
 			   'Time Download NEW', 'Time Request NEW', 'Total Time NEW']]
-	csv.to_csv("./transient/traces_small.csv")
+	csv.to_csv("./transient/traces_small-{}.csv".format(cache_size))
 
 
 @enostask()

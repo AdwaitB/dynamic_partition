@@ -22,7 +22,7 @@ FSIP = 'file_src_ip'
 HTTP_TIMEOUT = 3600  # (seconds)
 SEED = 666
 N_JOBS = 1000
-MAX_CACHE_SIZE = 10
+MAX_CACHE_SIZE = 20
 N_THREADS = 100
 do_async = False
 

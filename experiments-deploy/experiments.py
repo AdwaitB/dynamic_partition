@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 infra_current = INFRA_triangle
 provider = Providers.Vagrant
 #provider = Providers.G5K
-
+cache_size_list = [10, 20, 30]
 pp(infra_current)
 
 
@@ -97,23 +97,40 @@ def experiments(setting, destroy_enable):
 	if destroy_enable:
 		destroy()
 
+def set_cache_size(new_cache_size):
+	cmd = """ grep "MAX_CACHE_SIZE =" ../ipfs-table-update-backend/constants.py  """
+	old_cache = os.popen(cmd).read()
+	fin = open("../ipfs-table-update-backend/constants.py", "rt")
+	data = fin.read()
+	data = data.replace(old_cache, "MAX_CACHE_SIZE = {}\n".format(new_cache_size))
+	fin.close()
+	fin = open("../ipfs-table-update-backend/constants.py", "wt")
+	fin.write(data)
+	fin.close()
+
+
 
 def main():
 	if provider == Providers.G5K:
 		# destroy()
-		experiments("new", False)
-		experiments("dht", False)
+		for cache_size in cache_size_list:
+			set_cache_size(cache_size)
+			experiments("dht-{}".format(cache_size), True)
+			experiments("new-{}".format(cache_size), False)
 		# destroy()
 	elif provider == Providers.Vagrant:
 		# destroy()
-		experiments("dht", True)
-		experiments("new", False)
+		for cache_size in cache_size_list:
+			set_cache_size(cache_size)
+			experiments("dht-{}".format(cache_size), True)
+			experiments("new-{}".format(cache_size), False)
 		# destroy()
 
 
 time_start = time.time()
 main()
 # plot_complete()
-merge_traces()
+for cache_size in cache_size_list:
+	merge_traces(cache_size)
 destroy()
 print("Total Time: " + str(time.time() - time_start))

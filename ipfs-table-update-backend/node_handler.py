@@ -94,7 +94,8 @@ def handle_dht(request_json):
         return table.dht_ips[str(request_json[FH])]
     elif request_json[SUBTYPE] == 'ack':
         logging.debug("{}:JOB ID {}:HANDLE DHT:ACK:".format(dt.now(), request_json['job_id']))
-        table.dht_ips[str(request_json[FH])].append(request_json[FSIP])
+        if request_json[FSIP] not in table.dht_ips[str(request_json[FH])]:
+            table.dht_ips[str(request_json[FH])].append(request_json[FSIP])
         return "OK"
     elif request_json[SUBTYPE] == 'del':
         logging.debug("{}:JOB ID {}:HANDLE DHT:DEL:".format(dt.now(), request_json['job_id']))
