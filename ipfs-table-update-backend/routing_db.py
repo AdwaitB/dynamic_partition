@@ -59,7 +59,6 @@ class Table:
 
         self.n = len(self.infra.get_nodes())
 
-        self.atomic = {}
 
     def update_my_ip(self, ip):
         self.my_ip = ip
@@ -122,15 +121,6 @@ class Table:
 
         return ret
 
-    def get_lock_for_hash(self, file_id):
-        if file_id not in self.atomic:
-            self.atomic[file_id] = threading.Lock()
-        self.atomic[file_id].acquire()
-
-    def release_lock_for_hash(self, file_id):
-        if file_id not in self.atomic:
-            logging.debug("{}:BUG: No lock entries for this file hash {}".format(dt.now(), file_id))
-        self.atomic[file_id].release()
 
     def handle_insert(self, file_id, job_id):
         """
@@ -142,7 +132,6 @@ class Table:
 		:param file_id: <file_hash, file_source> pair
 		:return: [list of neighbours], clock
 		"""
-        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
         if file_id in self.entries:
             logging.debug(
@@ -169,8 +158,6 @@ class Table:
         logging.debug(
             "{}:JOB ID {}:ROUTING INSERT:END: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 
-        self.release_lock_for_hash(file_id)  # Ensure atomicity
-
         return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), clock_for_this_insert
 
     def handle_add(self, file_id, remote_entry, job_id):
@@ -182,7 +169,6 @@ class Table:
 		:param remote_entry: <ip, clock> for the added file
 		:return: [list of neighbours]
 		"""
-        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
         logging.debug("{}:JOB ID {}:ROUTING ADD:START:".format(dt.now(), job_id))
 
@@ -202,11 +188,9 @@ class Table:
             self.update_entries_for_file(file_id, remote_entry, job_id)
 
             # Return a list of neighbours that need to be notified
-            self.release_lock_for_hash(file_id)  # Ensure atomicity
             return self.infra.get_spt_neighbours(remote_entry[0], self.my_ip)
 
         # This entry is not better, do not update any neighbouring nodes
-        self.release_lock_for_hash(file_id)  # Ensure atomicity
         return []
 
     def handle_remove(self, file_id, job_id):
@@ -215,7 +199,6 @@ class Table:
 		:param file_id: <file_hash, file_source> pair
 		:return: old_best, new_best, broadcast_neighbours
 		"""
-        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
         logging.debug("{}:JOB ID {}:ROUTING REMOVE:START:".format(dt.now(), job_id))
 
@@ -233,12 +216,10 @@ class Table:
         )
 
         # Broadcast this entry
-        self.release_lock_for_hash(file_id)  # Ensure atomicity
         return old_best, new_best, self.infra.get_broadcast_neighbours(self.my_ip)
 
     def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry, job_id):
 
-        self.get_lock_for_hash(file_id)  # Ensure atomicity
 
         logging.debug("{}:JOB ID {}:ROUTING DEL:START:".format(dt.now(), job_id))
 
@@ -297,7 +278,6 @@ class Table:
 
         logging.debug("{}:JOB ID {}:ROUTING DEL:END:new_best = {}".format(dt.now(), job_id, new_best))
 
-        self.release_lock_for_hash(file_id)  # Ensure atomicity
         return ret
 
     def get_snapshot(self):

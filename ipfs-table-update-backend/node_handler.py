@@ -19,6 +19,7 @@ table = Table()
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=N_THREADS)
 my_cache = LRUCache(MAX_CACHE_SIZE)
 ongoing_downloads = set()
+atomic = {}
 
 entries = {
     Entries.INSERT_ENTRIES.name: [],
@@ -110,6 +111,7 @@ def handle_insert(request_json):
     :param request_json: json of the post method
     :return: send_json that was sent to the peers, spt_children
     """
+    get_lock_for_hash(request_json[FH])  # Ensure atomicity
     logging.debug("{}:JOB ID {}:HANDLE INSERT:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -148,6 +150,7 @@ def handle_insert(request_json):
 
     logging.debug("{}:JOB ID {}:HANDLE INSERT:END:".format(dt.now(), request_json['job_id']))
 
+    release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"send_json": send_json, "children": spt_children}
 
 
@@ -158,6 +161,7 @@ def handle_add(request_json):
     :param request_json: json of the post method
     :return: spt_children
     """
+    get_lock_for_hash(request_json[FH])  # Ensure atomicity
     logging.debug("{}:JOB ID {}:HANDLE ADD:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -184,7 +188,7 @@ def handle_add(request_json):
     })
 
     logging.debug("{}:JOB ID {}:HANDLE ADD:END:".format(dt.now(), request_json['job_id']))
-
+    release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"children": spt_children}
 
 
@@ -194,6 +198,7 @@ def handle_remove(request_json):
     :param request_json: json of the post method
     :return: old_best_entry, new_best_entry, neighbours
     """
+    get_lock_for_hash(request_json[FH])  # Ensure atomicity
     logging.debug("{}:JOB ID {}:HANDLE REMOVE:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -230,7 +235,7 @@ def handle_remove(request_json):
     })
 
     logging.debug("{}:JOB ID {}:HANDLE REMOVE:END:".format(dt.now(), request_json['job_id']))
-
+    release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"old_best": old_best_entry, "new_best": new_best_entry, "neighbours": neighbours}
 
 
@@ -240,6 +245,7 @@ def handle_del(request_json):
     :param request_json: json of the post method
     :return: the add and del tasks
     """
+    get_lock_for_hash(request_json[FH])  # Ensure atomicity
     logging.debug("{}:JOB ID {}:HANDLE DEL:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
@@ -304,7 +310,7 @@ def handle_del(request_json):
     })
 
     logging.debug("{}:JOB ID {}:HANDLE DEL:END:".format(dt.now(), request_json['job_id']))
-
+    release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"tasks": tasks}
 
 
@@ -537,6 +543,19 @@ def do_download(fhash, ip, request_json):
         os.remove(FILE_CACHE + str(removed_hash))
 
     return time_download, removed_hash
+
+
+def get_lock_for_hash(file_id):
+    global atomic
+    if file_id not in atomic:
+        atomic[file_id] = threading.Lock()
+    atomic[file_id].acquire()
+
+def release_lock_for_hash(file_id):
+    global atomic
+    if file_id not in atomic:
+        logging.debug("{}:BUG: No lock entries for this file hash {}".format(dt.now(), file_id))
+    atomic[file_id].release()
 
 
 if __name__ == '__main__':
