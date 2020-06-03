@@ -1,13 +1,4 @@
 ---
-- name: Log traffic TCPDUMP
-  hosts: all
-  tasks:
-    - name: TCPDUMP
-      shell: "tcpdump -i enp3s0f0 1> /root/deploy/traces/_node_traffic_stdout.txt 2> /root/deploy/traces/_node_traffic_stderr.txt"
-      async: 846000
-      poll: 0
-      ignore_errors: yes
-
 - name: Start Node Services
   hosts: node*
   tasks:

@@ -370,10 +370,13 @@ def handle_job(request_json):
 
     ongoing_downloads.add(request_json[FH])
 
-    if request_json['iter'] == "new":
+    if request_json['iter'].startswith("new"):
         req_time, download_time, ip = do_new_query(request_json)
-    else:
+    elif request_json['iter'].startswith("dht"):
         req_time, download_time, ip = do_dht_query(request_json)
+    elif request_json['iter'] == "baseline":
+        download_time, removed_hash = do_download(request_json[FH], table.src_ips[str(request_json[FH])]['source'], request_json)
+        req_time = 0
 
     logging.debug("{}:JOB ID {}:HANDLE JOB:END:".format(dt.now(), request_json['job_id']))
 

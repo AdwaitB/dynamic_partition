@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 infra_current = INFRA_triangle
 provider = Providers.Vagrant
 #provider = Providers.G5K
-cache_size_list = [10, 20, 30]
+cache_size_list = [10, 20]
 pp(infra_current)
 
 
@@ -77,7 +77,7 @@ def fetch(setting, env=None):
 	play.fetch(setting)
 
 
-def experiments(setting, destroy_enable):
+def experiments(setting, destroy_enable, first_deploy=True):
 	job_id = deploy()
 
 	keep_alive = 0
@@ -86,7 +86,8 @@ def experiments(setting, destroy_enable):
 		keep_alive = OarKeepAlive(job_id, g5k_loc)
 		keep_alive.start()
 
-	emulate()
+	if first_deploy:
+		emulate()
 	run_exp(setting)
 	fetch(setting)
 
@@ -96,6 +97,8 @@ def experiments(setting, destroy_enable):
 
 	if destroy_enable:
 		destroy()
+
+	#cleanup()
 
 def set_cache_size(new_cache_size):
 	cmd = """ grep "MAX_CACHE_SIZE =" ../ipfs-table-update-backend/constants.py  """
@@ -108,24 +111,12 @@ def set_cache_size(new_cache_size):
 	fin.write(data)
 	fin.close()
 
-
-
 def main():
-	if provider == Providers.G5K:
-		# destroy()
-		for cache_size in cache_size_list:
-			set_cache_size(cache_size)
-			experiments("dht-{}".format(cache_size), True)
-			experiments("new-{}".format(cache_size), False)
-		# destroy()
-	elif provider == Providers.Vagrant:
-		# destroy()
-		for cache_size in cache_size_list:
-			set_cache_size(cache_size)
-			experiments("dht-{}".format(cache_size), True)
-			experiments("new-{}".format(cache_size), False)
-		# destroy()
-
+	experiments("baseline", False, first_deploy=True)
+	for cache_size in cache_size_list:
+		set_cache_size(cache_size)
+		experiments("dht-{}".format(cache_size), False, first_deploy=False)
+		experiments("new-{}".format(cache_size), False, first_deploy=False)
 
 time_start = time.time()
 main()
