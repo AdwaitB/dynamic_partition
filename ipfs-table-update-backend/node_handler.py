@@ -50,14 +50,18 @@ class ItemStore(object):
             items, self.items = self.items, []
         return items
 
+def post_msg(destination_ip, list_of_json_to_send, HTTP_TIMEOUT):
+    my_session.post(destination_ip, json=list_of_json_to_send, timeout=HTTP_TIMEOUT)
+
 def send_msg():
+    global executor
     for destination_ip in msg_queue.keys():
         list_of_json_to_send = msg_queue[destination_ip].getAll()
-        logging.debug("send msg to {} - nb_of_msgs: {} - json: {}".format(destination_ip, len(list_of_json_to_send), list_of_json_to_send))
         if len(list_of_json_to_send) > 0:
             # We should use executor.submit() here
-
-            my_session.post(destination_ip, json=list_of_json_to_send, timeout=HTTP_TIMEOUT)
+            logging.debug("{}: send msg to {} - nb_of_msgs: {} - json: {}".format(dt.now(),destination_ip, len(list_of_json_to_send), list_of_json_to_send))
+            executor.submit(post_msg, destination_ip, list_of_json_to_send, HTTP_TIMEOUT)
+            #my_session.post(destination_ip, json=list_of_json_to_send, timeout=HTTP_TIMEOUT)
     threading.Timer(UPDATE_INTERVAL, send_msg).start()
 
 
@@ -65,7 +69,7 @@ def put_msg_in_queue(destination_ip, json_to_send):
     if destination_ip not in msg_queue:
         msg_queue[destination_ip] = ItemStore()
     msg_queue[destination_ip].add(json_to_send)
-    logging.debug("State of the queue of {} : {}".format(destination_ip, msg_queue[destination_ip]))
+    logging.debug("{}: State of the queue of {} : {}".format(dt.now(), destination_ip, msg_queue[destination_ip]))
 
 
 @app.route('/', methods=['POST'])

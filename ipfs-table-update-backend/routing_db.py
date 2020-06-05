@@ -19,22 +19,16 @@ class LockedEntry:
         return copy.deepcopy(self.entries)
 
     def update_entry(self, entry, job_id):
-        logging.debug("{}:JOB ID {}: UPDATE_ENTRY Waiting for lock".format(dt.now(), job_id))
         self.lock.acquire()
-        logging.debug("{}:JOB ID {}: UPDATE_ENTRY Lock aquired".format(dt.now(), job_id))
         self.entries.add(entry)
         self.lock.release()
-        logging.debug("{}:JOB ID {}: UPDATE_ENTRY lock released".format(dt.now(), job_id))
         return 0
 
     def delete_entry(self, entry, job_id):
-        logging.debug("{}:JOB ID {}: DELETE_ENTRY Waiting for lock".format(dt.now(), job_id))
         self.lock.acquire()
-        logging.debug("{}:JOB ID {}: DELETE_ENTRY Lock aquired".format(dt.now(), job_id))
         self.entries.discard(
             entry)  # Use 'discard' instead of remove, as it can throw an exception and create a DEADLOCK if not catched.
         self.lock.release()
-        logging.debug("{}:JOB ID {}: DELETE_ENTRY lock released".format(dt.now(), job_id))
         return 0
 
     def is_empty(self):
@@ -73,17 +67,12 @@ class Table:
         if file_id not in self.entries:
             return 1
         else:
-            logging.debug("{}:JOB ID {}: REMOVE_ENTRY Before DELETE_ENTRY".format(dt.now(), job_id))
             self.entries[file_id].delete_entry(entry, job_id)
-            logging.debug("{}:JOB ID {}: REMOVE_ENTRY After DELETE_ENTRY".format(dt.now(), job_id))
 
-            logging.debug("{}:JOB ID {}: REMOVE_ENTRY Waiting for parent_lock".format(dt.now(), job_id))
             self.parent_lock.acquire()
-            logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock acquired".format(dt.now(), job_id))
             if self.entries[file_id].is_empty():
                 del self.entries[file_id]
             self.parent_lock.release()
-            logging.debug("{}:JOB ID {}: REMOVE_ENTRY parent_lock released".format(dt.now(), job_id))
 
     def update_entries_for_file(self, file_id, entry, job_id):
         """
@@ -133,30 +122,14 @@ class Table:
 		:return: [list of neighbours], clock
 		"""
 
-        if file_id in self.entries:
-            logging.debug(
-                "{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
-        else:
-            logging.debug("{}:JOB ID {}:ROUTING INSERT:START: Entries {}".format(dt.now(), job_id, 0))
-
         self.parent_lock.acquire()
         self.clock = self.clock + 1
         clock_for_this_insert = self.clock
         if file_id in self.entries:
-            logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE BEFORE: Entries {}".format(dt.now(), job_id,
-                                                                                         self.entries[file_id].entries))
             self.entries[file_id].update_entry((self.my_ip, self.clock), job_id)
-            logging.debug("{}:JOB ID {}:ROUTING INSERT:UPDATE AFTER: Entries {}".format(dt.now(), job_id,
-                                                                                        self.entries[file_id].entries))
         else:
-            logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE BEFORE: Entries {}".format(dt.now(), job_id, 0))
             self.entries[file_id] = LockedEntry((self.my_ip, self.clock))
-            logging.debug("{}:JOB ID {}:ROUTING INSERT:CREATE AFTER: Entries {}".format(dt.now(), job_id,
-                                                                                        self.entries[file_id].entries))
         self.parent_lock.release()
-
-        logging.debug(
-            "{}:JOB ID {}:ROUTING INSERT:END: Entries {}".format(dt.now(), job_id, self.entries[file_id].entries))
 
         return self.infra.get_spt_neighbours(self.my_ip, self.my_ip), clock_for_this_insert
 
