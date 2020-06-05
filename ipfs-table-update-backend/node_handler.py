@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import concurrent.futures
 import os
 import time
@@ -32,52 +33,91 @@ entries = {
 if not do_async:
     logging.debug("Requests are blocking")
 
+msg_queue = {}
+UPDATE_INTERVAL = 5
+
+class ItemStore(object):
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.items = []
+
+    def add(self, item):
+        with self.lock:
+            self.items.append(item)
+
+    def getAll(self):
+        with self.lock:
+            items, self.items = self.items, []
+        return items
+
+def send_msg():
+    for destination_ip in msg_queue.keys():
+        list_of_json_to_send = msg_queue[destination_ip].getAll()
+        logging.debug("send msg to {} - nb_of_msgs: {} - json: {}".format(destination_ip, len(list_of_json_to_send), list_of_json_to_send))
+        if len(list_of_json_to_send) > 0:
+            # We should use executor.submit() here
+
+            my_session.post(destination_ip, json=list_of_json_to_send, timeout=HTTP_TIMEOUT)
+    threading.Timer(UPDATE_INTERVAL, send_msg).start()
+
+
+def put_msg_in_queue(destination_ip, json_to_send):
+    if destination_ip not in msg_queue:
+        msg_queue[destination_ip] = ItemStore()
+    msg_queue[destination_ip].add(json_to_send)
+    logging.debug("State of the queue of {} : {}".format(destination_ip, msg_queue[destination_ip]))
+
 
 @app.route('/', methods=['POST'])
 def handler():
-    request_json = request.get_json()
+    received_msg = request.get_json()
+    request_json_list = []
+    if type(received_msg) is dict:
+        request_json_list.append(received_msg)  # Hack to handle a single JSON POST as a list
+    elif type(received_msg) is list:
+        request_json_list = received_msg
+    logging.debug("{}: Nb of JSON in list {} - request_json_list: {} ".format(dt.now(), len(request_json_list), request_json_list))
+    for request_json in request_json_list:
+        logging.debug("{} request_json: {}".format(dt.now(), request_json))
+        output = 0
+        logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
+        global executor
 
-    output = 0
+        if request_json[TYPE] == RequestType.DHT.name:
+            output = handle_dht(request_json)
+        if request_json[TYPE] == RequestType.INSERT.name:
+            executor.submit(handle_insert, request_json)
+            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+        elif request_json[TYPE] == RequestType.ADD.name:
+            executor.submit(handle_add, request_json)
+            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+        elif request_json[TYPE] == RequestType.REMOVE.name:
+            executor.submit(handle_remove, request_json)
+            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+        elif request_json[TYPE] == RequestType.DELETE.name:
+            executor.submit(handle_del, request_json)
+            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+        elif request_json[TYPE] == RequestType.CONTROL.name:
+            output = handle_control(request_json)
+        elif request_json[TYPE] == RequestType.DOWNLOAD.name:
+            logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START:".format(dt.now(), request_json['job_id']))
+            if os.path.exists(FILE_FOLDER + str(request_json[FH])):
+                logging.debug(
+                    "{}:JOB ID {}:HANDLE DOWNLOAD:OWNER:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+                return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
+            elif os.path.exists(FILE_CACHE + str(request_json[FH])):
+                logging.debug(
+                    "{}:JOB ID {}:HANDLE DOWNLOAD:CACHE:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+                return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
+            else:
+                logging.debug(
+                    "{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+                return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
 
-    logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
+        elif request_json[TYPE] == RequestType.JOB.name:
+            output = handle_job(request_json)
 
-    global executor
-
-    if request_json[TYPE] == RequestType.DHT.name:
-        output = handle_dht(request_json)
-    if request_json[TYPE] == RequestType.INSERT.name:
-        executor.submit(handle_insert, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.ADD.name:
-        executor.submit(handle_add, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.REMOVE.name:
-        executor.submit(handle_remove, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.DELETE.name:
-        executor.submit(handle_del, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.CONTROL.name:
-        output = handle_control(request_json)
-    elif request_json[TYPE] == RequestType.DOWNLOAD.name:
-        logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START:".format(dt.now(), request_json['job_id']))
-        if os.path.exists(FILE_FOLDER + str(request_json[FH])):
-            logging.debug(
-                "{}:JOB ID {}:HANDLE DOWNLOAD:OWNER:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-            return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
-        elif os.path.exists(FILE_CACHE + str(request_json[FH])):
-            logging.debug(
-                "{}:JOB ID {}:HANDLE DOWNLOAD:CACHE:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-            return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
-        else:
-            logging.debug(
-                "{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-            return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
-
-    elif request_json[TYPE] == RequestType.JOB.name:
-        output = handle_job(request_json)
-
-    return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
+        return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
 
 
 def handle_dht(request_json):
@@ -138,7 +178,7 @@ def handle_insert(request_json):
             executor.submit(load_url, generate_url(neighbour), send_json)
         else:
             logging.debug("{}:JOB ID {}:HANDLE INSERT:SEND TO {}:".format(dt.now(), request_json['job_id'], generate_url(neighbour)))
-            my_session.post(generate_url(neighbour), json=send_json, timeout=HTTP_TIMEOUT)
+            put_msg_in_queue(generate_url(neighbour), send_json)
 
     entries[Entries.INSERT_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -178,7 +218,7 @@ def handle_add(request_json):
         if do_async:
             executor.submit(load_url, generate_url(neighbour), request_json)
         else:
-            my_session.post(generate_url(neighbour), json=request_json, timeout=HTTP_TIMEOUT)
+            put_msg_in_queue(generate_url(neighbour), request_json)
 
     entries[Entries.ADD_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -224,7 +264,7 @@ def handle_remove(request_json):
         if do_async:
             executor.submit(load_url, generate_url(neighbour), send_json)
         else:
-            my_session.post(generate_url(neighbour), json=send_json, timeout=HTTP_TIMEOUT)
+            put_msg_in_queue(generate_url(neighbour), send_json)
 
     entries[Entries.REMOVE_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -283,7 +323,7 @@ def handle_del(request_json):
             if do_async:
                 executor.submit(load_url, generate_url(neighbour), send_json)
             else:
-                my_session.post(generate_url(neighbour), json=send_json, timeout=HTTP_TIMEOUT)
+                put_msg_in_queue(generate_url(neighbour), send_json)
 
     if tasks[RequestType.ADD.name]:
         send_json = {
@@ -300,7 +340,7 @@ def handle_del(request_json):
         if do_async:
             executor.submit(load_url, generate_url(tasks[RequestType.ADD.name]["ip"]), send_json)
         else:
-            my_session.post(generate_url(tasks[RequestType.ADD.name]["ip"]), json=send_json, timeout=HTTP_TIMEOUT)
+            put_msg_in_queue(generate_url(tasks[RequestType.ADD.name]["ip"]), send_json)
 
     entries[Entries.DELETE_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -486,7 +526,7 @@ def do_dht_query(request_json):
         FSIP: table.my_ip,
         'job_id': request_json['job_id']
     }
-    my_session.post(generate_url(dht_ip), json=send_json_ack, timeout=HTTP_TIMEOUT)
+    put_msg_in_queue(generate_url(dht_ip), send_json_ack)
 
     # Trigger a DEL message if removed_hash != 0
     if removed_hash != 0:
@@ -503,7 +543,7 @@ def do_dht_query(request_json):
                                                                                          request_json['job_id'],
                                                                                          removed_hash, table.my_ip,
                                                                                          dht_ip_remove))
-        my_session.post(generate_url(dht_ip_remove), json=send_json_del, timeout=HTTP_TIMEOUT)
+        put_msg_in_queue(generate_url(dht_ip_remove), send_json_del)
 
     logging.debug("{}:JOB ID {}:HANDLE JOB:DHT END:time = {}".format(dt.now(), request_json['job_id'], time_init))
 
@@ -561,6 +601,6 @@ def release_lock_for_hash(file_id):
 if __name__ == '__main__':
     my_session = requests.Session()
     from requests.adapters import HTTPAdapter
-
     my_session.mount('http://', HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=100))
+    send_msg()
     app.run(port=NODE_CUSTOM_PORT, host='0.0.0.0')
