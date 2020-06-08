@@ -55,7 +55,7 @@ def post_msg(destination_ip, list_of_json_to_send, HTTP_TIMEOUT):
 
 def send_msg():
     global executor
-    for destination_ip in msg_queue.keys():
+    for destination_ip in list(msg_queue):
         list_of_json_to_send = msg_queue[destination_ip].getAll()
         if len(list_of_json_to_send) > 0:
             # We should use executor.submit() here
@@ -73,7 +73,8 @@ def put_msg_in_queue(destination_ip, json_to_send):
 
 
 @app.route('/', methods=['POST'])
-def handler():
+def receive_msg():
+    global executor
     received_msg = request.get_json()
     request_json_list = []
     if type(received_msg) is dict:
@@ -82,46 +83,50 @@ def handler():
         request_json_list = received_msg
     logging.debug("{}: Nb of JSON in list {} - request_json_list: {} ".format(dt.now(), len(request_json_list), request_json_list))
     for request_json in request_json_list:
-        logging.debug("{} request_json: {}".format(dt.now(), request_json))
-        output = 0
-        logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
-        global executor
+        executor.submit(handler, request_json)
 
-        if request_json[TYPE] == RequestType.DHT.name:
-            output = handle_dht(request_json)
-        if request_json[TYPE] == RequestType.INSERT.name:
-            executor.submit(handle_insert, request_json)
-            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-        elif request_json[TYPE] == RequestType.ADD.name:
-            executor.submit(handle_add, request_json)
-            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-        elif request_json[TYPE] == RequestType.REMOVE.name:
-            executor.submit(handle_remove, request_json)
-            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-        elif request_json[TYPE] == RequestType.DELETE.name:
-            executor.submit(handle_del, request_json)
-            return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-        elif request_json[TYPE] == RequestType.CONTROL.name:
-            output = handle_control(request_json)
-        elif request_json[TYPE] == RequestType.DOWNLOAD.name:
-            logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START:".format(dt.now(), request_json['job_id']))
-            if os.path.exists(FILE_FOLDER + str(request_json[FH])):
-                logging.debug(
-                    "{}:JOB ID {}:HANDLE DOWNLOAD:OWNER:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-                return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
-            elif os.path.exists(FILE_CACHE + str(request_json[FH])):
-                logging.debug(
-                    "{}:JOB ID {}:HANDLE DOWNLOAD:CACHE:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+
+def handler(request_json):
+    output = 0
+    logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
+    global executor
+    if request_json[TYPE] == RequestType.DHT.name:
+        output = handle_dht(request_json)
+    if request_json[TYPE] == RequestType.INSERT.name:
+        executor.submit(handle_insert, request_json)
+        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+    elif request_json[TYPE] == RequestType.ADD.name:
+        executor.submit(handle_add, request_json)
+        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+    elif request_json[TYPE] == RequestType.REMOVE.name:
+        executor.submit(handle_remove, request_json)
+        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+    elif request_json[TYPE] == RequestType.DELETE.name:
+        executor.submit(handle_del, request_json)
+        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
+    elif request_json[TYPE] == RequestType.CONTROL.name:
+        output = handle_control(request_json)
+    elif request_json[TYPE] == RequestType.DOWNLOAD.name:
+        logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START:".format(dt.now(), request_json['job_id']))
+        if os.path.exists(FILE_FOLDER + str(request_json[FH])):
+            logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:OWNER:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+            return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
+        elif os.path.exists(FILE_CACHE + str(request_json[FH])):
+            try:
+                logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:CACHE:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
                 return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
-            else:
-                logging.debug(
-                    "{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+            except FileNotFoundError:
+                logging.debug("{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
                 return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
+        else:
+            logging.debug(
+                "{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
+            return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
 
-        elif request_json[TYPE] == RequestType.JOB.name:
-            output = handle_job(request_json)
+    elif request_json[TYPE] == RequestType.JOB.name:
+        output = handle_job(request_json)
 
-        return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
+    return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
 
 
 def handle_dht(request_json):
