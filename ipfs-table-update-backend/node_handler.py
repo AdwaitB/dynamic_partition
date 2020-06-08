@@ -34,6 +34,7 @@ if not do_async:
     logging.debug("Requests are blocking")
 
 msg_queue = {}
+lock_msg_queue = threading.Lock()
 UPDATE_INTERVAL = 5
 
 class ItemStore(object):
@@ -73,60 +74,69 @@ def put_msg_in_queue(destination_ip, json_to_send):
 
 
 @app.route('/', methods=['POST'])
-def receive_msg():
-    global executor
+def handler():
     received_msg = request.get_json()
     request_json_list = []
+    global executor
     if type(received_msg) is dict:
         request_json_list.append(received_msg)  # Hack to handle a single JSON POST as a list
+        for request_json in request_json_list:
+            logging.debug("{} request_json: {}".format(dt.now(), request_json))
+            output = 0
+            logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
+
+            if request_json[TYPE] == RequestType.DOWNLOAD.name:
+                logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START:".format(dt.now(), request_json['job_id']))
+                if os.path.exists(FILE_FOLDER + str(request_json[FH])):
+                    logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:OWNER:{}".format(dt.now(), request_json['job_id'],
+                                                                                 str(request_json[FH])))
+                    return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
+                elif os.path.exists(FILE_CACHE + str(request_json[FH])):
+                    try:
+                        logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:CACHE:{}".format(dt.now(), request_json['job_id'],
+                                                                                     str(request_json[FH])))
+                        return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
+                    except FileNotFoundError:
+                        logging.debug("{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'],
+                                                                              str(request_json[FH])))
+                        return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
+                else:
+                    logging.debug(
+                        "{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'],
+                                                                str(request_json[FH])))
+                    return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
+
+            elif request_json[TYPE] == RequestType.JOB.name:
+                output = handle_job(request_json)
+
+            elif request_json[TYPE] == RequestType.DHT.name:
+                output = handle_dht(request_json)
+
+            elif request_json[TYPE] == RequestType.CONTROL.name:
+                output = handle_control(request_json)
+
+            elif request_json[TYPE] == RequestType.INSERT.name:
+                executor.submit(handle_insert, request_json)
+
+            elif request_json[TYPE] == RequestType.REMOVE.name:
+                executor.submit(handle_remove, request_json)
+
+            return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
     elif type(received_msg) is list:
         request_json_list = received_msg
-    logging.debug("{}: Nb of JSON in list {} - request_json_list: {} ".format(dt.now(), len(request_json_list), request_json_list))
-    for request_json in request_json_list:
-        executor.submit(handler, request_json)
+        logging.debug("{}: Nb of JSON in list {} - request_json_list: {} ".format(dt.now(), len(request_json_list), request_json_list))
+        for request_json in request_json_list:
+            logging.debug("{} request_json: {}".format(dt.now(), request_json))
+            output = 0
+            logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
+            if request_json[TYPE] == RequestType.DHT.name:
+                output = handle_dht(request_json)
+            elif request_json[TYPE] == RequestType.ADD.name:
+                executor.submit(handle_add, request_json)
+            elif request_json[TYPE] == RequestType.DELETE.name:
+                executor.submit(handle_del, request_json)
 
-
-def handler(request_json):
-    output = 0
-    logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
-    global executor
-    if request_json[TYPE] == RequestType.DHT.name:
-        output = handle_dht(request_json)
-    if request_json[TYPE] == RequestType.INSERT.name:
-        executor.submit(handle_insert, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.ADD.name:
-        executor.submit(handle_add, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.REMOVE.name:
-        executor.submit(handle_remove, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.DELETE.name:
-        executor.submit(handle_del, request_json)
-        return json.dumps({"output": str(output), "request_json": request_json}) + "\n\n"
-    elif request_json[TYPE] == RequestType.CONTROL.name:
-        output = handle_control(request_json)
-    elif request_json[TYPE] == RequestType.DOWNLOAD.name:
-        logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:START:".format(dt.now(), request_json['job_id']))
-        if os.path.exists(FILE_FOLDER + str(request_json[FH])):
-            logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:OWNER:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-            return send_file(FILE_FOLDER + str(request_json[FH]), as_attachment=True)
-        elif os.path.exists(FILE_CACHE + str(request_json[FH])):
-            try:
-                logging.debug("{}:JOB ID {}:HANDLE DOWNLOAD:CACHE:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-                return send_file(FILE_CACHE + str(request_json[FH]), as_attachment=True)
-            except FileNotFoundError:
-                logging.debug("{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-                return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
-        else:
-            logging.debug(
-                "{}:JOB ID {}:FILE NOT FOUND:{}".format(dt.now(), request_json['job_id'], str(request_json[FH])))
-            return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
-
-    elif request_json[TYPE] == RequestType.JOB.name:
-        output = handle_job(request_json)
-
-    return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
+        return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
 
 
 def handle_dht(request_json):
