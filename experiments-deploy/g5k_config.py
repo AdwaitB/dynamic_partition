@@ -39,7 +39,7 @@ class G5KProvider:
                              nodes=1,
                              primary_network=network)
 
-        conf.walltime = "2:00:00"
+        conf.walltime = "02:00:00"
 
         conf.finalize()
         return conf

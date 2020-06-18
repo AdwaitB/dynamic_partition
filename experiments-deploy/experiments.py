@@ -13,12 +13,12 @@ from utils_xp import *
 
 logging.basicConfig(level=logging.DEBUG)
 
-#infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
+infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
 # infra_current = INFRA_complete_10
-infra_current = INFRA_triangle
-provider = Providers.Vagrant
-#provider = Providers.G5K
-cache_size_list = [10, 20]
+#infra_current = INFRA_triangle
+#provider = Providers.Vagrant
+provider = Providers.G5K
+cache_size_list = [60]
 pp(infra_current)
 
 
@@ -112,10 +112,10 @@ def set_cache_size(new_cache_size):
 	fin.close()
 
 def main():
-	experiments("baseline", False, first_deploy=True)
+	#experiments("baseline", False, first_deploy=True)
 	for cache_size in cache_size_list:
 		set_cache_size(cache_size)
-		experiments("dht-{}".format(cache_size), False, first_deploy=False)
+		experiments("dht-{}".format(cache_size), False, first_deploy=True)
 		experiments("new-{}".format(cache_size), False, first_deploy=False)
 
 time_start = time.time()

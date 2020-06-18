@@ -20,9 +20,9 @@ FH = 'file_hash'
 FSIP = 'file_src_ip'
 
 HTTP_TIMEOUT = 3600  # (seconds)
-SEED = 666
-N_JOBS = 1000
-MAX_CACHE_SIZE = 20
+SEED = 777
+N_JOBS = 20000
+MAX_CACHE_SIZE = 60
 N_THREADS = 100
 do_async = False
 
@@ -74,8 +74,8 @@ class RequestDel(Enum):
 	sender_entry_clock = 6
 
 
-# FILE_SIZES = (1, 16, 64, 128, 256, 2048, 8192, 16384, 32768)
-FILE_SIZES = (1, 8, 32, 64, 128, 256, 512, 1024, 2048)
+#FILE_SIZES = (1, 16, 64, 128, 256, 2048, 8192, 16384, 32768)
+FILE_SIZES = (1, 32, 64, 256, 512, 1024, 2048, 16384, 32768)
 
 CONFIG_FOLDER = "/root/deploy/backend/"
 FILE_FOLDER = "/root/deploy/files/"
@@ -83,5 +83,5 @@ TRACES_FOLDER = "/root/deploy/traces/"
 FILE_CACHE = "/root/deploy/files-cache/"
 
 # Values in ms, time between jobs = a + rand(0, b)
-JOB_GENERATION_A = 200
-JOB_GENERATION_B = 200
+JOB_GENERATION_A = 50
+JOB_GENERATION_B = 50
