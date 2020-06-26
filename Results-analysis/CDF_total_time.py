@@ -5,7 +5,7 @@ import os
 import statistics
 
 # Read each experiment csv log and put all the download times in a list
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater20000Jobs_100ms_seed777_cache-10-20-30/transient"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Cernet/Cernet20000Jobs_Cache20_40_60_seed777_3s"
 os.chdir(path)
 cmd = """ find  ./* -name "traces_*.csv" """
 data_path = os.popen(cmd).read()
@@ -22,9 +22,16 @@ for csv_file in data_path:
     counts, bin_edges = np.histogram(download_times, bins=num_bins, normed=True)
     cdf = np.cumsum(counts)
     label = csv_file.split("_")[1].split(".")[0]
-    if label.startswith("dht"): linestyle, width = "--", 2
-    elif label.startswith("new"): linestyle, width = "-.", 2
-    elif label.startswith("baseline"): linestyle, width = "-", 2
+    if label.startswith("dht"): linestyle, width = "--", 4
+    elif label.startswith("new"): linestyle, width = "-.", 4
+    elif label.startswith("baseline"): linestyle, width = "-", 4
+
+    font = {'family': 'normal',
+            'size': 30}
+    plt.rc('font', **font)
+    plt.rcParams.update({'lines.linewidth': 10, "xtick.labelsize": 30, 'ytick.labelsize': 30})
+
+
     plt.plot(bin_edges[1:], cdf / cdf[-1], label=label, linestyle=linestyle, linewidth=width)
     print("mean "+csv_file.split("_")[1].split(".")[0] + ": "+ str(statistics.mean(download_times)))
 
@@ -36,7 +43,7 @@ axes = plt.gca()
 axes.yaxis.grid()
 plt.yticks(np.arange(0, 1.1, 0.1))
 plt.legend()
-plt.xlabel("Total Time to download the object (seconds) - Including requesting time")
+plt.xlabel("Total GET time (seconds) - Including lookup time ")
 plt.ylabel("CDF")
-plt.title("Comparison of objects downloading times between AAA and DHT")
+#plt.title("Comparison of objects downloading times between AAA and DHT")
 plt.show()

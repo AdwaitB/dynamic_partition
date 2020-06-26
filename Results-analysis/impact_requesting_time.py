@@ -4,7 +4,7 @@ import os
 import csv
 from statistics import mean
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater20000Jobs_100ms/transient"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Cernet/Cernet20000Jobs_Cache20_40_60_seed777_3s"
 os.chdir(path)
 cmd = """ find  ./* -name "traces_*.csv" """
 data_path = os.popen(cmd).read()
@@ -27,6 +27,10 @@ for csv_file in data_path:
             dict_download_time[trace_name][size]['req'].append(float(row[8]))
             dict_download_time[trace_name][size]['total'].append(float(row[9]))
 
+font = {'family': 'normal',
+        'size': 30}
+plt.rc('font', **font)
+plt.rcParams.update({'lines.linewidth': 8, "xtick.labelsize": 30, 'ytick.labelsize': 30})
 
 # set width of bar
 barWidth = 0.1
@@ -34,30 +38,83 @@ ticks_sp = [i for i in range(0, len(dict_download_time[trace_name].keys()))]
 fig, ax = plt.subplots()
 width = 0.15
 i = 1
-
+comparison = {}
 for trace in sorted(list(dict_download_time.keys()))[::-1]:
     sizes = sorted(list(dict_download_time[trace_name].keys()))
     average_download_time = []
     average_request_time = []
+    comparison.update({trace: {}})
     for size in sizes:
         average_download_time.append(mean(dict_download_time[trace][size]['download']))
         average_request_time.append(mean(dict_download_time[trace][size]['req']))
+        comparison[trace].update({size: {"download": mean(dict_download_time[trace][size]['download']), "req": mean(dict_download_time[trace][size]['req'])}})
     if "new" in trace: x_ticks = [x + i*barWidth for x in ticks_sp]
     elif "dht" in trace: x_ticks = [x + (i+0.4)*barWidth for x in ticks_sp]
     elif "baseline" in trace: x_ticks = [x + (i+0.8)*barWidth for x in ticks_sp]
     ax.bar(x_ticks, average_request_time, width=barWidth, label='Request {}'.format(trace), color='red', edgecolor='black', hatch='//')
     ax.bar(x_ticks, average_download_time, width=barWidth, bottom=average_request_time, label='Download {}'.format(trace), edgecolor='black')
-    ax.legend()
+    ax.legend(fontsize=18)
     i += 1
 
-x_labels = ["1KB", "8KB", "32KB", "64KB", "128KB", "256KB", "512KB", "1MB", "2MB"]
+
+#x_labels = ["1KB", "8KB", "32KB", "64KB", "128KB", "256KB", "512KB", "1MB", "2MB"]
+x_labels = ['1KB', '32K', '64KB', '256KB', '512KB', '1MB', '2MB', '16MB', '32MB']
 plt.xticks([r + (barWidth / len(dict_download_time.keys())) + 0.5 for r in range(len(ticks_sp))], x_labels)
 axes = plt.gca()
 axes.yaxis.grid()
 plt.xlabel("Size of Dataset (KB)")
 plt.ylabel("Average Time to get an object (s)")
-plt.title("Impact of the request time to get an object for DHT and AAA for different cache sizes")
+#plt.title("Impact of the request time to get an object for DHT and AAA for different cache sizes")
 plt.show()
+
+
+#fig = plt.figure(figsize=(30, 20))
+plt.ylim(bottom=0, top=70)
+font = {'family': 'normal',
+        'size': 30}
+plt.rc('font', **font)
+plt.rcParams.update({'lines.linewidth': 4, "xtick.labelsize": 30, 'ytick.labelsize': 30})
+
+cache_sizes = set()
+for entry in [x.split("-") for x in comparison if x != "baseline"]:
+    cache_sizes.add(entry[1])
+
+update_interval = trace_name.split("-")[2]
+
+for xp in sorted(list(cache_sizes)):
+    sizes = sorted(list(dict_download_time[trace_name].keys()))
+    to_plot = []
+    for size in sizes:
+        aaa = comparison["new-{}-{}".format(xp, update_interval)][size]["download"] + comparison["new-{}-{}".format(xp, update_interval)][size]["req"]
+        dht = comparison["dht-{}-{}".format(xp, update_interval)][size]["download"] + comparison["dht-{}-{}".format(xp, update_interval)][size]["req"]
+        reduction = (float(dht - aaa)/float(dht)) * 100
+        to_plot.append(reduction)
+    plt.plot(x_labels, to_plot, label="Cache size: {}".format(xp), marker='*', markersize=12)
+
+plt.legend()
+
+
+#ax.yaxis.set_major_formatter(FuncFormatter('{0:.0%}'.format))
+plt.xlabel("Size of Dataset (KB)")
+plt.ylabel("Average GET time reduction (in percent)")
+#plt.title("Total GET time reduction (in percent) when comparing DHT to AAA for different cache sizes")
+
+
+axes = plt.gca()
+axes.yaxis.grid()
+plt.gca().set_yticklabels(["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%"])
+
+#plt.gca().set_yticklabels(['{:.0f}%'.format(x) for x in plt.gca().get_yticks()])
+
+
+#fig.savefig('/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater/Graphs/reduction.png')
+
+plt.show()
+
+
+
+
+
 
 # path = "/Users/avankemp/PycharmProjects/dynamic_partition/experiments-deploy/transient"
 # input_data = path + "/traces-20.csv"

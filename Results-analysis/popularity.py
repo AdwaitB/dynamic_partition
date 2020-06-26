@@ -7,7 +7,7 @@ import os
 MAX_SEQ_NUMBER = 40 # Significative value of the number of time a given filehash has been requested.
                     # After 40, not enough data to plot meaningful average value
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater20000Jobs_100ms_seed777_cache-10-20-30/transient"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater/JOBS_50ms/Renater20000Jobs_Cache20_40_60_seed777_3s/transient"
 os.chdir(path)
 cmd = """ find  ./* -name "traces_*.csv" """
 data_path = os.popen(cmd).read()
@@ -48,7 +48,8 @@ for csv_file in data_path:
                 mean_download_time_per_sequence_number[trace_name][size][i].append(dict_download_time[trace_name][file_hash]['download'][i])
 
 list_of_file_sizes_sorted = sorted(list(mapping_hash_sizes.keys()))
-
+cache_sizes = ['1KB', '32K', '64KB', '256KB', '512KB', '1MB', '2MB', '16MB', '32MB']
+index=0
 for size in list_of_file_sizes_sorted:
     for csv_file in data_path:
         trace_name = csv_file.split("_")[1].split(".")[0]
@@ -63,7 +64,8 @@ for size in list_of_file_sizes_sorted:
         plt.plot(range(1,MAX_SEQ_NUMBER+1), average_download_times_to_plot, label=label, linestyle=linestyle, linewidth=width)
 
     plt.title("Impact of file popularity - Average download time (s) depending on the sequence number \n (Requesting time is "
-    "*not* included here) - Object size = {}".format(size))
+    "*not* included here) - Object size = {}".format(cache_sizes[index]))
+    index += 1
     plt.legend()
 
     plt.xlabel("Number of time a given object has been requested in the system")

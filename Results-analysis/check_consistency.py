@@ -1,7 +1,7 @@
 import os
 import sys
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater20000Jobs_100ms_seed777_cache-10-20-30/transient"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Interval_7s/Renater20000Jobs_Cache20_40_60_seed777_7s/transient"
 os.chdir(path)
 
 for filename in os.listdir(os.getcwd()):
@@ -27,7 +27,7 @@ for filename in os.listdir(os.getcwd()):
 					log_to_check = not_found_error.replace(not_found_error.split('/')[1].split("-")[0]+"-"+not_found_error.split('/')[1].split("-")[1], cluster_name+"-"+error_location).split(":")[0]
 					req_msg = job_id + ":DEFAULT:{'type': 'DHT', 'subtype': 'request', 'file_hash':"+file_hash
 					del_msg = "DEFAULT:{'type': 'DHT', 'subtype': 'del', 'file_hash':"+file_hash
-					cmd_req = """ grep -A 100 "{}" {} """.format(req_msg, log_to_check)
+					cmd_req = """ grep -A 500 "{}" {} """.format(req_msg, log_to_check)
 					cmd_req = cmd_req.replace("\\", "")
 					req_found = os.popen(cmd_req).read()
 					req_found = req_found.split("\n")
@@ -52,7 +52,7 @@ for filename in os.listdir(os.getcwd()):
 					log_to_check = not_found_error.split(":")[0]
 					job_id = not_found_error.split(":")[6]
 					file_hash = not_found_error.split(":")[8].split("=")[1].split(',')[0]
-					cmd_grep = """ grep -A 100 -B 100 "{}" {} """.format(job_id+":Error 404", log_to_check)
+					cmd_grep = """ grep -A 2500 -B 2500 "{}" {} """.format(job_id+":Error 404", log_to_check)
 					req_found = os.popen(cmd_grep).read()
 					req_found = req_found.split("\n")
 					del req_found[-1]
