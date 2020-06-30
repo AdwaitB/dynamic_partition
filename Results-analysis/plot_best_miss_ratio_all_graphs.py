@@ -2,6 +2,12 @@ import os
 import json
 import matplotlib.pyplot as plt
 
+
+font = {'family': 'normal',
+        'size': 30}
+plt.rc('font', **font)
+plt.rcParams.update({'lines.linewidth': 6, "xtick.labelsize": 30, 'ytick.labelsize': 30})
+
 path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater/"
 os.chdir(path)
 with open('best_miss_ration.json') as json_file:
@@ -39,11 +45,15 @@ for size in cache_sizes:
 
 
 #plt.gca().set_yticklabels(['{:.0f}%'.format(x) for x in plt.gca().get_yticks()])
-plt.tight_layout()  # otherwise the right y-label is slightly clipped
-plt.gca().set_yticklabels(['{:.0f}%'.format(x) for x in plt.gca().get_yticks()])
+#plt.tight_layout()  # otherwise the right y-label is slightly clipped
+
 plt.legend()
 axes = plt.gca()
 axes.yaxis.grid()
-
+#plt.gca().set_yticklabels(['{:.0f}%'.format(x) for x in plt.gca().get_yticks()])
+plt.gca().set_yticklabels(["0%", "2%", "4%","6%","8%","10%"])
+plt.ylim(bottom=0)
 # plt.title("Tradeoff between number of exchanged messages and number of 404 errors - {} Jobs".format(NB_JOBS))
+plt.xlabel("Update interval (seconds)", fontsize=30)
+plt.ylabel("Best-miss ratio (in percent)", fontsize=30)
 plt.show()

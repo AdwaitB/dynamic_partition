@@ -4,8 +4,8 @@ from oracle import get_optimal_destination
 
 
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater/"
-# Get nbr of messages of AAA algo:
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater_random_interval/t "
+# # Genbr of messages of AAA algo:
 os.chdir(path)
 #list_of_interval_names = [x.split('_')[5] for x in os.listdir(os.getcwd()) if not x.startswith(".")]
 
