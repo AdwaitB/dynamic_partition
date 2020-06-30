@@ -3,6 +3,7 @@ import concurrent.futures
 import os
 import time
 import pandas as pd
+import random
 from flask import Flask, request, send_file
 from flask_restful import Api
 from LRU import LRUCache
@@ -70,6 +71,7 @@ def put_msg_in_queue(destination_ip, json_to_send):
     if destination_ip not in msg_queue:
         msg_queue[destination_ip] = ItemStore()
     msg_queue[destination_ip].add(json_to_send)
+    logging.debug("{}: Put msg in queue: {}".format(dt.now(), json_to_send))
     logging.debug("{}: State of the queue of {} : {}".format(dt.now(), destination_ip, msg_queue[destination_ip]))
 
 
@@ -124,7 +126,7 @@ def handler():
             return json.dumps({"output": output, "request_json": request_json}) + "\n\n"
     elif type(received_msg) is list:
         request_json_list = received_msg
-        logging.debug("{}: Nb of JSON in list {} - request_json_list: {} ".format(dt.now(), len(request_json_list), request_json_list))
+        logging.debug("{}: Nb of JSON in list {} - request_json_list:  {}".format(dt.now(), len(request_json_list), request_json_list))
         for request_json in request_json_list:
             logging.debug("{} request_json: {}".format(dt.now(), request_json))
             output = 0

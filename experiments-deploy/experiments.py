@@ -18,7 +18,8 @@ infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
 #infra_current = INFRA_triangle
 #provider = Providers.Vagrant
 provider = Providers.G5K
-cache_size_list = [60]
+cache_size_list = [20, 40, 60]
+interval_list = [0.001, 1, 2, 3, 4, 5]
 pp(infra_current)
 
 
@@ -111,12 +112,26 @@ def set_cache_size(new_cache_size):
 	fin.write(data)
 	fin.close()
 
+
+def set_update_interval(new_interval):
+    cmd = """ grep "UPDATE_INTERVAL =" ../ipfs-table-update-backend/node_handler.py  """
+    old_interval = os.popen(cmd).read()
+    fin = open("../ipfs-table-update-backend/node_handler.py", "rt")
+    data = fin.read()
+    data = data.replace(old_interval, "UPDATE_INTERVAL = {}\n".format(new_interval))
+    fin.close()
+    fin = open("../ipfs-table-update-backend/node_handler.py", "wt")
+    fin.write(data)
+    fin.close()
+
 def main():
-	#experiments("baseline", False, first_deploy=True)
-	for cache_size in cache_size_list:
-		set_cache_size(cache_size)
-		experiments("dht-{}".format(cache_size), False, first_deploy=True)
-		experiments("new-{}".format(cache_size), False, first_deploy=False)
+    experiments("baseline", False, first_deploy=True)
+    for interval in interval_list:
+        set_update_interval(interval)
+        for cache_size in cache_size_list:
+            set_cache_size(cache_size)
+            experiments("dht-{}-{}s".format(cache_size, interval), False, first_deploy=False)
+            experiments("new-{}-{}s".format(cache_size, interval), False, first_deploy=False)
 
 time_start = time.time()
 main()
