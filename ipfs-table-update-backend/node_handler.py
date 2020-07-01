@@ -457,16 +457,24 @@ def do_new_query(request_json):
 
     time_init = time.time()
 
+    ips = list(table.get_entries_for_file((request_json[FH], table.src_ips[str(request_json[FH])]['source'])))
+    ips = [x[0] for x in ips]
+    ips.append(table.src_ips[str(request_json[FH])]['source'])
+    logging.debug("{}:JOB ID {}:list of available IP for hash ({}): {}".format(dt.now(), request_json['job_id'], request_json[FH], ips))
+    req_time = time.time() - time_init
+
     download_time = -1
+    already_tried = set()
     while download_time == -1:
-        ip = table.get_best_entry_for_file(
-            (request_json[FH], table.src_ips[str(request_json[FH])]['source'])
-        )
-        ip = ip[0]
+        nearest_ip = ips[0]
+        nearest_dist = table.infra.shortest_path_dist[nearest_ip][table.my_ip]
+        for ip in ips:
+            if table.infra.shortest_path_dist[ip][table.my_ip] < nearest_dist and ip not in already_tried:
+                nearest_ip = ip
+                nearest_dist = table.infra.shortest_path_dist[ip][table.my_ip]
 
-        req_time = time.time() - time_init
-
-        download_time, removed_hash = do_download(request_json[FH], ip, request_json)
+        download_time, removed_hash = do_download(request_json[FH], nearest_ip, request_json)
+        already_tried.add(nearest_ip)
 
     download_time_with_file_write = time.time() - req_time - time_init
 
@@ -492,7 +500,7 @@ def do_new_query(request_json):
             "{}:JOB ID {}:TRIGGER REMOVE:removed_hash = {}".format(dt.now(), request_json['job_id'], removed_hash))
 
     logging.debug("{}:JOB ID {}:HANDLE JOB:NEW END:time = {}".format(dt.now(), request_json['job_id'], time_init))
-    return req_time, download_time, ip
+    return req_time, download_time, nearest_ip
 
 
 def do_dht_query(request_json):
@@ -503,30 +511,30 @@ def do_dht_query(request_json):
 
     dht_ip = table.get_ip_by_value(fhash % table.n)
 
+    dht_json = {
+        TYPE: RequestType.DHT.name,
+        SUBTYPE: 'request',
+        FH: fhash,
+        'job_id': request_json['job_id']
+    }
+
+    ips = my_session.post(generate_url(dht_ip), json=dht_json, timeout=HTTP_TIMEOUT)
+    ips = json.loads(ips.text)['output']
+    logging.debug("{}:JOB ID {}:list of available IP for hash ({}): {}".format(dt.now(), request_json['job_id'], request_json[FH], ips))
+    req_time = time.time() - time_init
+
     download_time = -1
+    already_tried = set()
     while download_time == -1:
-
-        dht_json = {
-            TYPE: RequestType.DHT.name,
-            SUBTYPE: 'request',
-            FH: fhash,
-            'job_id': request_json['job_id']
-        }
-
-        ips = my_session.post(generate_url(dht_ip), json=dht_json, timeout=HTTP_TIMEOUT)
-        ips = json.loads(ips.text)['output']
-
         nearest_ip = ips[0]
         nearest_dist = table.infra.shortest_path_dist[nearest_ip][table.my_ip]
-
         for ip in ips:
-            if table.infra.shortest_path_dist[ip][table.my_ip] < nearest_dist:
+            if table.infra.shortest_path_dist[ip][table.my_ip] < nearest_dist and ip not in already_tried:
                 nearest_ip = ip
                 nearest_dist = table.infra.shortest_path_dist[ip][table.my_ip]
 
-        req_time = time.time() - time_init
-
         download_time, removed_hash = do_download(request_json[FH], nearest_ip, request_json)
+        already_tried.add(nearest_ip)
 
     download_time_with_file_write = time.time() - req_time - time_init
 
