@@ -67,11 +67,11 @@ def send_msg():
     threading.Timer(UPDATE_INTERVAL, send_msg).start()
 
 
-def put_msg_in_queue(destination_ip, json_to_send):
+def put_msg_in_queue(destination_ip, json_to_send, job_id, msg_type):
     if destination_ip not in msg_queue:
         msg_queue[destination_ip] = ItemStore()
     msg_queue[destination_ip].add(json_to_send)
-    logging.debug("{}: Put msg in queue: {}".format(dt.now(), json_to_send))
+    logging.debug("{}: JOB ID {}: Put msg {} in queue: {}".format(dt.now(), job_id, msg_type, json_to_send))
     logging.debug("{}: State of the queue of {} : {}".format(dt.now(), destination_ip, msg_queue[destination_ip]))
 
 
@@ -83,7 +83,6 @@ def handler():
     if type(received_msg) is dict:
         request_json_list.append(received_msg)  # Hack to handle a single JSON POST as a list
         for request_json in request_json_list:
-            logging.debug("{} request_json: {}".format(dt.now(), request_json))
             output = 0
             logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
 
@@ -128,9 +127,8 @@ def handler():
         request_json_list = received_msg
         logging.debug("{}: Nb of JSON in list {} - request_json_list:  {}".format(dt.now(), len(request_json_list), request_json_list))
         for request_json in request_json_list:
-            logging.debug("{} request_json: {}".format(dt.now(), request_json))
             output = 0
-            logging.debug("{}:JOB ID {}:DEFAULT:{}".format(dt.now(), request_json['job_id'], request_json))
+            logging.debug("{}:JOB ID {}:DEFAULT-UPDATE:{}".format(dt.now(), request_json['job_id'], request_json))
             if request_json[TYPE] == RequestType.DHT.name:
                 output = handle_dht(request_json)
             elif request_json[TYPE] == RequestType.ADD.name:
@@ -199,7 +197,7 @@ def handle_insert(request_json):
             executor.submit(load_url, generate_url(neighbour), send_json)
         else:
             logging.debug("{}:JOB ID {}:HANDLE INSERT:SEND TO {}:".format(dt.now(), request_json['job_id'], generate_url(neighbour)))
-            put_msg_in_queue(generate_url(neighbour), send_json)
+            put_msg_in_queue(generate_url(neighbour), send_json, request_json['job_id'], "INSERT")
 
     entries[Entries.INSERT_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -239,7 +237,7 @@ def handle_add(request_json):
         if do_async:
             executor.submit(load_url, generate_url(neighbour), request_json)
         else:
-            put_msg_in_queue(generate_url(neighbour), request_json)
+            put_msg_in_queue(generate_url(neighbour), request_json, request_json['job_id'], "ADD")
 
     entries[Entries.ADD_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -285,7 +283,7 @@ def handle_remove(request_json):
         if do_async:
             executor.submit(load_url, generate_url(neighbour), send_json)
         else:
-            put_msg_in_queue(generate_url(neighbour), send_json)
+            put_msg_in_queue(generate_url(neighbour), send_json, request_json['job_id'], "REMOVE")
 
     entries[Entries.REMOVE_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -344,7 +342,7 @@ def handle_del(request_json):
             if do_async:
                 executor.submit(load_url, generate_url(neighbour), send_json)
             else:
-                put_msg_in_queue(generate_url(neighbour), send_json)
+                put_msg_in_queue(generate_url(neighbour), send_json, request_json['job_id'], "DEL")
 
     if tasks[RequestType.ADD.name]:
         send_json = {
@@ -361,7 +359,7 @@ def handle_del(request_json):
         if do_async:
             executor.submit(load_url, generate_url(tasks[RequestType.ADD.name]["ip"]), send_json)
         else:
-            put_msg_in_queue(generate_url(tasks[RequestType.ADD.name]["ip"]), send_json)
+            put_msg_in_queue(generate_url(tasks[RequestType.ADD.name]["ip"]), send_json, request_json['job_id'], "ECHO")
 
     entries[Entries.DELETE_ENTRIES.name].append({
         TS: str(dt.now()),
@@ -459,14 +457,16 @@ def do_new_query(request_json):
 
     time_init = time.time()
 
-    ip = table.get_best_entry_for_file(
-        (request_json[FH], table.src_ips[str(request_json[FH])]['source'])
-    )
-    ip = ip[0]
+    download_time = -1
+    while download_time == -1:
+        ip = table.get_best_entry_for_file(
+            (request_json[FH], table.src_ips[str(request_json[FH])]['source'])
+        )
+        ip = ip[0]
 
-    req_time = time.time() - time_init
+        req_time = time.time() - time_init
 
-    download_time, removed_hash = do_download(request_json[FH], ip, request_json)
+        download_time, removed_hash = do_download(request_json[FH], ip, request_json)
 
     download_time_with_file_write = time.time() - req_time - time_init
 
@@ -503,27 +503,30 @@ def do_dht_query(request_json):
 
     dht_ip = table.get_ip_by_value(fhash % table.n)
 
-    dht_json = {
-        TYPE: RequestType.DHT.name,
-        SUBTYPE: 'request',
-        FH: fhash,
-        'job_id': request_json['job_id']
-    }
+    download_time = -1
+    while download_time == -1:
 
-    ips = my_session.post(generate_url(dht_ip), json=dht_json, timeout=HTTP_TIMEOUT)
-    ips = json.loads(ips.text)['output']
+        dht_json = {
+            TYPE: RequestType.DHT.name,
+            SUBTYPE: 'request',
+            FH: fhash,
+            'job_id': request_json['job_id']
+        }
 
-    nearest_ip = ips[0]
-    nearest_dist = table.infra.shortest_path_dist[nearest_ip][table.my_ip]
+        ips = my_session.post(generate_url(dht_ip), json=dht_json, timeout=HTTP_TIMEOUT)
+        ips = json.loads(ips.text)['output']
 
-    for ip in ips:
-        if table.infra.shortest_path_dist[ip][table.my_ip] < nearest_dist:
-            nearest_ip = ip
-            nearest_dist = table.infra.shortest_path_dist[ip][table.my_ip]
+        nearest_ip = ips[0]
+        nearest_dist = table.infra.shortest_path_dist[nearest_ip][table.my_ip]
 
-    req_time = time.time() - time_init
+        for ip in ips:
+            if table.infra.shortest_path_dist[ip][table.my_ip] < nearest_dist:
+                nearest_ip = ip
+                nearest_dist = table.infra.shortest_path_dist[ip][table.my_ip]
 
-    download_time, removed_hash = do_download(request_json[FH], nearest_ip, request_json)
+        req_time = time.time() - time_init
+
+        download_time, removed_hash = do_download(request_json[FH], nearest_ip, request_json)
 
     download_time_with_file_write = time.time() - req_time - time_init
 
@@ -547,7 +550,7 @@ def do_dht_query(request_json):
         FSIP: table.my_ip,
         'job_id': request_json['job_id']
     }
-    put_msg_in_queue(generate_url(dht_ip), send_json_ack)
+    put_msg_in_queue(generate_url(dht_ip), send_json_ack, request_json['job_id'], "DHT-ACK")
 
     # Trigger a DEL message if removed_hash != 0
     if removed_hash != 0:
@@ -564,7 +567,8 @@ def do_dht_query(request_json):
                                                                                          request_json['job_id'],
                                                                                          removed_hash, table.my_ip,
                                                                                          dht_ip_remove))
-        put_msg_in_queue(generate_url(dht_ip_remove), send_json_del)
+
+        put_msg_in_queue(generate_url(dht_ip_remove), send_json_del, request_json['job_id'], "DHT-DEL")
 
     logging.debug("{}:JOB ID {}:HANDLE JOB:DHT END:time = {}".format(dt.now(), request_json['job_id'], time_init))
 
@@ -584,8 +588,9 @@ def do_download(fhash, ip, request_json):
 
     if file_data.headers.get('content-type') != "application/octet-stream": # Fallback to the source and add the time to get 404 + time to get file from the source.
         logging.debug("{}:JOB ID {}:Error 404 Fall back to source:file_hash = {}, location = {}, source_ip = {}".format(dt.now(), request_json['job_id'], fhash, ip, table.src_ips[str(fhash)]['source']))
-        file_data = my_session.post(generate_url(table.src_ips[str(fhash)]['source']), json=send_json, timeout=HTTP_TIMEOUT)
-        time_download = time.time() - time_download
+        return -1, 0
+        #file_data = my_session.post(generate_url(table.src_ips[str(fhash)]['source']), json=send_json, timeout=HTTP_TIMEOUT)
+        #time_download = time.time() - time_download
 
     else: # File has been downloaded correctly
         logging.debug("{}:JOB ID {}:HANDLE JOB:DOWNLOAD:file_hash = {}, location = {}, source_ip = {}".format(dt.now(), request_json['job_id'], fhash, ip, table.src_ips[str(fhash)]['source']))
