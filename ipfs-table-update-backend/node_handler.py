@@ -459,14 +459,14 @@ def do_new_query(request_json):
 
     ips = list(table.get_entries_for_file((request_json[FH], table.src_ips[str(request_json[FH])]['source'])))
     ips = [x[0] for x in ips]
-    ips.append(table.src_ips[str(request_json[FH])]['source'])
+    ips.insert(0, table.src_ips[str(request_json[FH])]['source'])  # Put the source at the beginning
     logging.debug("{}:JOB ID {}:list of available IP for hash ({}): {}".format(dt.now(), request_json['job_id'], request_json[FH], ips))
     req_time = time.time() - time_init
 
     download_time = -1
     already_tried = set()
     while download_time == -1:
-        nearest_ip = ips[0]
+        nearest_ip = ips[0]  # Initialize with the source
         nearest_dist = table.infra.shortest_path_dist[nearest_ip][table.my_ip]
         for ip in ips:
             if table.infra.shortest_path_dist[ip][table.my_ip] < nearest_dist and ip not in already_tried:
