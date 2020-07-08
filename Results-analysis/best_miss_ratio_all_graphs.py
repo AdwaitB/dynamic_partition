@@ -4,7 +4,7 @@ from oracle import get_optimal_destination
 
 
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater_random_interval/t "
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater_no_fall_back/"
 # # Genbr of messages of AAA algo:
 os.chdir(path)
 #list_of_interval_names = [x.split('_')[5] for x in os.listdir(os.getcwd()) if not x.startswith(".")]
@@ -57,17 +57,17 @@ for interval in list_of_interval:
                                 source = first_split[8].split(",")[2].split("=")[1]
                                 dict_of_download_sources[filename][job_id] = location
     
-                            cmd = """ grep "Error 404 Fall back to source" _node_stderr.txt """
-                            sources = os.popen(cmd).read()
-                            sources_splitted = sources.split('\n')
-                            del sources_splitted[-1]
-                            downloaded_files = []
-                            for entry in sources_splitted:
-                                first_split = entry.split(':')
-                                job_id = int(first_split[5].split(" ")[2])
-                                if job_id not in dict_of_download_sources[filename]: dict_of_download_sources[filename].update({job_id: ""})
-                                source = entry.split("source_ip = ")[1]
-                                dict_of_download_sources[filename][job_id] = source  # We go to the source here after a 404 error
+                            # cmd = """ grep "Error 404 Fall back to source" _node_stderr.txt """
+                            # sources = os.popen(cmd).read()
+                            # sources_splitted = sources.split('\n')
+                            # del sources_splitted[-1]
+                            # downloaded_files = []
+                            # for entry in sources_splitted:
+                            #     first_split = entry.split(':')
+                            #     job_id = int(first_split[5].split(" ")[2])
+                            #     if job_id not in dict_of_download_sources[filename]: dict_of_download_sources[filename].update({job_id: ""})
+                            #     source = entry.split("source_ip = ")[1]
+                            #     dict_of_download_sources[filename][job_id] = source  # We go to the source here after a 404 error
     
                     difference_from_oracle.update({filename: 0})
                     for job_id in optimal_dest[filename]:
@@ -83,7 +83,6 @@ for interval in list_of_interval:
         difference_in_percent.update({xp: round(float(difference_from_oracle[xp] * 100) / float(NB_JOBS), 1)})
     
     print(json.dumps(difference_in_percent, indent = 4))
-    print('lol')
     all_graphs_results[interval] = difference_in_percent
 
 os.chdir(path)

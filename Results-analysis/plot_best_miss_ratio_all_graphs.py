@@ -8,7 +8,7 @@ font = {'family': 'normal',
 plt.rc('font', **font)
 plt.rcParams.update({'lines.linewidth': 6, "xtick.labelsize": 30, 'ytick.labelsize': 30})
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater/"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater_no_fall_back/"
 os.chdir(path)
 with open('best_miss_ration.json') as json_file:
     all_results = json.load(json_file)

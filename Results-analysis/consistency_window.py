@@ -5,8 +5,9 @@ from datetime import datetime
 from statistics import mean, stdev
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 
-path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater_full_log/"
+path = "/Users/avankemp/Workspace/Triple-A/Experiments/G5K/Renater_no_fall_back/"
 # Get nbr of messages of AAA algo:
 os.chdir(path)
 # list_of_interval_names = [x.split('_')[5] for x in os.listdir(os.getcwd()) if not x.startswith(".")]
@@ -34,57 +35,69 @@ for interval in list_of_interval:
                         os.chdir(xp_path + "/" + filename + "/" + node + "/root/deploy/traces")
                         if os.path.exists("_node_stderr.txt"):
                             # Get the sent messages
-                            cmd = """ grep "Put msg in queue" _node_stderr.txt """
+                            cmd = """ grep "Put msg" _node_stderr.txt """
                             sources = os.popen(cmd).read()
                             sources_splitted = sources.split('\n')
                             del sources_splitted[-1]
                             for entry in sources_splitted:
-                                time_of_entry = datetime.fromisoformat(entry.split("root")[1].split("Put")[0][1:len(entry) - 1][:-2])
-                                msg = eval(entry.split('Put msg in queue:')[1])
+                                time_of_entry = datetime.fromisoformat(entry.split("root")[1].split("Put")[0].split('JOB ID')[0][1:len(entry) - 1][:-2])
+                                msg = eval(entry.split('in queue:')[1])
                                 msg_string = tuple(sorted(msg.items()))
                                 if msg_string not in all_graphs_results[interval][filename]: all_graphs_results[interval][filename].update({msg_string: {'sent': [], 'received': []}})
                                 all_graphs_results[interval][filename][msg_string]['sent'].append(time_of_entry)
 
-                            cmd = """ grep "request_json_list:" _node_stderr.txt """
+                            cmd = """ grep "DEFAULT-UPDATE:" _node_stderr.txt """
                             sources = os.popen(cmd).read()
                             sources_splitted = sources.split('\n')
                             del sources_splitted[-1]
                             already_received = set()
                             for entry in sources_splitted:
-                                time_of_entry = datetime.fromisoformat(entry.split("root")[1].split("Nb of JSON")[0][1:len(entry) - 1][:-2])
-                                list_of_message = eval(entry.split('request_json_list:')[1])
-                                for msg in list_of_message:
-                                    msg_string = tuple(sorted(msg.items()))
-                                    if msg_string not in all_graphs_results[interval][filename]: all_graphs_results[interval][filename].update({msg_string: {'sent': [], 'received': []}})
-                                    if msg_string not in already_received:  # We do not count if we already have the info on the node
-                                        all_graphs_results[interval][filename][msg_string]['received'].append(time_of_entry)
-                                    already_received.add(msg_string)
-
-                    list_of_delays = []
-                    for msg in all_graphs_results[interval][filename]:
-                        first_send = sorted(all_graphs_results[interval][filename][msg]['sent'])[0]
-                        last_received = sorted(all_graphs_results[interval][filename][msg]['received'])[-1]
-                        list_of_delays.append((last_received - first_send).total_seconds())
-
-                    sorted_list_of_delays = sorted(list_of_delays)
-
-                    num_bins = 10000
-                    counts, bin_edges = np.histogram(sorted_list_of_delays, bins=num_bins, normed=True)
-                    cdf = np.cumsum(counts)
-                    plt.plot(bin_edges[1:], cdf / cdf[-1], label=interval+'-'+filename)
-                    plt.legend()
+                                time_of_entry = datetime.fromisoformat(entry.split("root")[1].split("JOB ID")[0][1:len(entry) - 1][:-1])
+                                msg = eval(entry.split('UPDATE:')[1])
+                                msg_string = tuple(sorted(msg.items()))
+                                if msg_string not in all_graphs_results[interval][filename]: all_graphs_results[interval][filename].update({msg_string: {'sent': [], 'received': []}})
+                                if msg_string not in already_received:  # We do not count if we already have the info on the node
+                                    all_graphs_results[interval][filename][msg_string]['received'].append(time_of_entry)
+                                already_received.add(msg_string)
+                    #
+                    # list_of_delays = []
+                    # for msg in all_graphs_results[interval][filename]:
+                    #     first_send = sorted(all_graphs_results[interval][filename][msg]['sent'])[0]
+                    #     last_received = sorted(all_graphs_results[interval][filename][msg]['received'])[-1]
+                    #     list_of_delays.append((last_received - first_send).total_seconds())
+                    #
+                    # sorted_list_of_delays = sorted(list_of_delays)
+                    #
+                    # num_bins = 10000
+                    # counts, bin_edges = np.histogram(sorted_list_of_delays, bins=num_bins, normed=True)
+                    # cdf = np.cumsum(counts)
+                    # plt.plot(bin_edges[1:], cdf / cdf[-1], label=interval+'-'+filename)
+                    # plt.legend()
 
 
                     os.chdir(xp_path)
 
 
-font = {'family': 'normal',
-        'size': 30}
-plt.rc('font', **font)
-plt.rcParams.update({'lines.linewidth': 6, "xtick.labelsize": 30, 'ytick.labelsize': 30})
-plt.xlabel("Maximum inconsistency window (seconds)", fontsize=30)
-plt.ylabel("CDF", fontsize=30)
-plt.show()
+    # font = {'family': 'normal',
+    #         'size': 30}
+    # plt.rc('font', **font)
+    # plt.rcParams.update({'lines.linewidth': 6, "xtick.labelsize": 30, 'ytick.labelsize': 30})
+    # plt.xlabel("Maximum inconsistency window (seconds)", fontsize=30)
+    # plt.ylabel("CDF", fontsize=30)
+#plt.show()
+
+
+# dict_all_results = {}
+# for interval in all_graphs_results:
+#     for filename in all_graphs_results[interval]:
+#         for msg_string in all_graphs_results[interval][filename]:
+#             dict_all_results.update({interval: {filename:{str(msg_string: )}}})    all_graphs_results[interval][filename][msg_string]
+
+
+os.chdir(path)
+pickle.dump(all_graphs_results, open("dict_consistency_window.p", "wb"))
+# with open('consistency_window.json', 'w') as fp:
+#     json.dump(all_graphs_results, fp)
 
 # import os
 # import json
