@@ -19,7 +19,7 @@ infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
 #provider = Providers.Vagrant
 provider = Providers.G5K
 cache_size_list = [20, 40, 60]
-interval_list = [0.001, 1, 2, 3, 4, 5]
+interval_list =  [0.001, 1, 2, 3, 4, 5]
 pp(infra_current)
 
 

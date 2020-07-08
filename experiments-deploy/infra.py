@@ -1,14 +1,14 @@
 vagrant_image = "ubuntu-custom"
 
-# g5k_loc = "rennes"
-# g5k_cluster = "paravance"
+#g5k_loc = "rennes"
+#g5k_cluster = "paravance"
 
-g5k_loc = "nancy"
-g5k_cluster = "grisou"
+#g5k_loc = "nancy"
+#g5k_cluster = "grisou"
 #g5k_cluster = "gros"
-#g5k_loc = "nantes"
+g5k_loc = "nantes"
 # g5k_cluster = "econome"
-#g5k_cluster = "ecotype"
+g5k_cluster = "ecotype"
 
 # g5k_loc = "lyon"
 # g5k_cluster = "sagittaire"

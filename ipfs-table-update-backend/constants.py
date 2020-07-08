@@ -20,7 +20,7 @@ FH = 'file_hash'
 FSIP = 'file_src_ip'
 
 HTTP_TIMEOUT = 3600  # (seconds)
-SEED = 123
+SEED = 111
 N_JOBS = 20000
 MAX_CACHE_SIZE = 60
 N_THREADS = 100
