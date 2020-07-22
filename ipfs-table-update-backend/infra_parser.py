@@ -30,13 +30,13 @@ class Infra:
 		self.shortest_path_trees_deflated = self.build_deflated_spt()
 
 		print("shortest_path_dist")
-		pp(self.shortest_path_dist)
+		#pp(self.shortest_path_dist)
 		print("shortest_paths")
-		pp(self.shortest_paths)
+		#pp(self.shortest_paths)
 		print("shortest_path_trees")
-		pp(self.shortest_path_trees)
+		#pp(self.shortest_path_trees)
 		print("shortest_path_trees_deflated")
-		pp(self.shortest_path_trees_deflated)
+		#pp(self.shortest_path_trees_deflated)
 
 	def build_graph(self):
 		ret = nx.Graph()

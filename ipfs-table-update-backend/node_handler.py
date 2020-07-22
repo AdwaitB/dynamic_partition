@@ -171,7 +171,7 @@ def handle_insert(request_json):
     :return: send_json that was sent to the peers, spt_children
     """
     get_lock_for_hash(request_json[FH])  # Ensure atomicity
-    logging.debug("{}:JOB ID {}:HANDLE INSERT:START:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE INSERT:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -207,7 +207,7 @@ def handle_insert(request_json):
         "job_id": request_json['job_id']
     })
 
-    logging.debug("{}:JOB ID {}:HANDLE INSERT:END:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE INSERT:END:".format(dt.now(), request_json['job_id']))
 
     release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"send_json": send_json, "children": spt_children}
@@ -221,7 +221,7 @@ def handle_add(request_json):
     :return: spt_children
     """
     get_lock_for_hash(request_json[FH])  # Ensure atomicity
-    logging.debug("{}:JOB ID {}:HANDLE ADD:START:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE ADD:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -246,7 +246,7 @@ def handle_add(request_json):
         "job_id": request_json['job_id']
     })
 
-    logging.debug("{}:JOB ID {}:HANDLE ADD:END:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE ADD:END:".format(dt.now(), request_json['job_id']))
     release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"children": spt_children}
 
@@ -258,7 +258,7 @@ def handle_remove(request_json):
     :return: old_best_entry, new_best_entry, neighbours
     """
     get_lock_for_hash(request_json[FH])  # Ensure atomicity
-    logging.debug("{}:JOB ID {}:HANDLE REMOVE:START:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE REMOVE:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -293,7 +293,7 @@ def handle_remove(request_json):
         "job_id": request_json['job_id']
     })
 
-    logging.debug("{}:JOB ID {}:HANDLE REMOVE:END:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE REMOVE:END:".format(dt.now(), request_json['job_id']))
     release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"old_best": old_best_entry, "new_best": new_best_entry, "neighbours": neighbours}
 
@@ -305,7 +305,7 @@ def handle_del(request_json):
     :return: the add and del tasks
     """
     get_lock_for_hash(request_json[FH])  # Ensure atomicity
-    logging.debug("{}:JOB ID {}:HANDLE DEL:START:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE DEL:START:".format(dt.now(), request_json['job_id']))
 
     request_json[FSIP] = table.src_ips[str(request_json[FH])]['source']
 
@@ -368,7 +368,7 @@ def handle_del(request_json):
         "job_id": request_json['job_id']
     })
 
-    logging.debug("{}:JOB ID {}:HANDLE DEL:END:".format(dt.now(), request_json['job_id']))
+    #logging.debug("{}:JOB ID {}:HANDLE DEL:END:".format(dt.now(), request_json['job_id']))
     release_lock_for_hash(request_json[FH])  # Ensure atomicity
     return {"tasks": tasks}
 

@@ -143,7 +143,7 @@ class Table:
 		:return: [list of neighbours]
 		"""
 
-        logging.debug("{}:JOB ID {}:ROUTING ADD:START:".format(dt.now(), job_id))
+        #logging.debug("{}:JOB ID {}:ROUTING ADD:START:".format(dt.now(), job_id))
 
         # Find the best location of this object. Can be source and not necessary that this object has an entry.
         best = self.get_best_entry_for_file(file_id)
@@ -173,7 +173,7 @@ class Table:
 		:return: old_best, new_best, broadcast_neighbours
 		"""
 
-        logging.debug("{}:JOB ID {}:ROUTING REMOVE:START:".format(dt.now(), job_id))
+        #logging.debug("{}:JOB ID {}:ROUTING REMOVE:START:".format(dt.now(), job_id))
 
         # Get the current entry which should be self. Call this old_best
         old_best = self.get_best_entry_for_file(file_id)
@@ -194,7 +194,7 @@ class Table:
     def handle_del(self, file_id, remove_src_entry, sender_ip, sender_entry, job_id):
 
 
-        logging.debug("{}:JOB ID {}:ROUTING DEL:START:".format(dt.now(), job_id))
+        #logging.debug("{}:JOB ID {}:ROUTING DEL:START:".format(dt.now(), job_id))
 
         # Find set for condition 1
         old_clocks = self.get_entries_for_file(file_id)
