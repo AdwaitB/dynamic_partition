@@ -10,6 +10,7 @@ from playbook import *
 from post_processing import *
 from provider_proxy import *
 from utils_xp import *
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -81,16 +82,16 @@ def fetch(setting, env=None):
 
 
 def experiments(setting, destroy_enable, first_deploy=True):
-	job_id = deploy()
-
-	keep_alive = 0
-
-	if provider == Providers.G5K:
-		keep_alive = OarKeepAlive(job_id, g5k_loc)
-		keep_alive.start()
-
 	if first_deploy:
+		job_id = deploy()
+
+		keep_alive = 0
+
+		if provider == Providers.G5K:
+			keep_alive = OarKeepAlive(job_id, g5k_loc)
+			keep_alive.start()
 		emulate()
+
 	run_exp(setting)
 	fetch(setting)
 
@@ -127,6 +128,7 @@ def set_update_interval(new_interval):
     fin.close()
 
 def main():
+	os.system('rm -rf current enos_*')  # Clean the previous enoslib related folders.
     experiments("baseline", False, first_deploy=True)
     for interval in interval_list:
         set_update_interval(interval)
