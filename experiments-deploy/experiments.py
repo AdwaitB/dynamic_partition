@@ -13,20 +13,22 @@ from utils_xp import *
 
 logging.basicConfig(level=logging.DEBUG)
 
-infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
+#infra_current = generate_dict_from_yml("Topologies/condensed_west_europe-inferred.gml")
+infra_current = generate_dict_from_yml("Topologies/condensed_west_europe-inferred.gml")
 # infra_current = INFRA_complete_10
 #infra_current = INFRA_triangle
 #provider = Providers.Vagrant
 provider = Providers.G5K
 cache_size_list = [20, 40, 60]
 interval_list =  [0.001, 1, 2, 3, 4, 5]
+#interval_list =  [1]
 pp(infra_current)
 
 
 @enostask(new=True)
 def deploy(env=None):
 	p = ProviderProxy(provider, infra_current)
-	roles, networks = p.deploy_infra()
+	roles, networks = p.deploy_infra(infra_current)
 	play = PlayBook(roles, networks, infra_current)
 
 	print(roles)

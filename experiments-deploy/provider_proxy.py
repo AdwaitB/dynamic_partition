@@ -1,9 +1,10 @@
 from enum import Enum
 
-from enoslib.api import emulate_network, discover_networks
+from enoslib.api import discover_networks
 from g5k_config import *
 from infra_parser_xp import *
 from vagrant_config import *
+from enoslib.service import Netem
 
 
 class ProviderProxy:
@@ -25,11 +26,11 @@ class ProviderProxy:
 
 		self.roles, self.networks = [0, 0]
 
-	def deploy_infra(self):
-		self.roles, self.networks = self.p.deploy_infra()
+	def deploy_infra(self, infra):
+		self.roles, self.networks = self.p.deploy_infra(infra)
 
 		# Ifconfig and parse
-		discover_networks(self.roles, self.networks)
+		#self.roles = discover_networks(self.roles, self.networks)
 
 		return self.roles, self.networks
 
@@ -40,7 +41,9 @@ class ProviderProxy:
 
 		if emulation_conf is not None:
 			# reset_network(roles=self.roles)
-			emulate_network(emulation_conf, roles=self.roles)
+			netem = Netem(emulation_conf, roles=self.roles)
+			# netem = Netem(emulation_conf, roles=roles)
+			netem.deploy()
 			# validate_network(roles=self.roles)
 
 	@staticmethod

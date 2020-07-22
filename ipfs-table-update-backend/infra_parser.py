@@ -81,26 +81,26 @@ class Infra:
 
 	def get_name_by_ip(self, ip):
 		for role in self.roles:
-			if role['extra']['my_network_ip'] == ip:
+			if role['extra']['my_subnet_ip'] == ip:
 				return role['role']
 		return DEFAULT_NODE_NAME
 
 	def get_ip_by_name(self, name):
 		for role in self.roles:
 			if role['role'] == name:
-				return role['extra']['my_network_ip']
+				return role['address']
 		return DEFAULT_IP
 
 	def get_alias_by_ip(self, ip):
 		for role in self.roles:
-			if role['extra']['my_network_ip'] == ip:
+			if role['extra']['my_subnet_ip'] == ip:
 				return role['alias']
 		return DEFAULT_ALIAS
 
 	def get_ip_by_alias(self, alias):
 		for role in self.roles:
 			if role['alias'] == alias:
-				return role['extra']['my_network_ip']
+				return role['extra']['my_subnet_ip']
 		return DEFAULT_IP
 
 	def get_name_by_alias(self, alias):
@@ -117,7 +117,7 @@ class Infra:
 
 	def get_name_alias_by_ip(self, ip):
 		for role in self.roles:
-			if role['extra']['my_network_ip'] == ip:
+			if role['extra']['my_subnet_ip'] == ip:
 				return role['role'], role['alias']
 		return DEFAULT_NODE_NAME, DEFAULT_ALIAS
 

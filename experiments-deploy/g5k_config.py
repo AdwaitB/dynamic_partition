@@ -3,8 +3,11 @@ import string
 import subprocess
 from enoslib.infra.enos_g5k.configuration import Configuration, NetworkConfiguration
 from enoslib.infra.enos_g5k.provider import G5k
-from infra import g5k_cluster, g5k_loc, g5k_image
-
+from infra import g5k_cluster, g5k_loc, g5k_image, NBR_OF_PHY_MACHINES
+import enoslib.infra.enos_vmong5k.configuration as vmconf
+from enoslib.infra.enos_vmong5k.provider import start_virtualmachines
+import enoslib.infra.enos_g5k.configuration as g5kconf
+from enoslib.api import discover_networks
 
 class G5KProvider:
     def __init__(self, infra, image=g5k_image):
@@ -22,32 +25,70 @@ class G5KProvider:
     @staticmethod
     def create_configuration(infra, image):
         # Building the configuration for connection
-        conf = Configuration.from_settings(job_name="experiments",
-                                           env_name=image)
+        CLUSTER = g5k_cluster
+        SITE = g5k_loc
+        print(infra)
 
-        # Claim the resources
-        # Create the network
-        network = NetworkConfiguration(id="n1",
-                                       type="kavlan",
-                                       roles=["my_network"],
-                                       site=g5k_loc)
-        conf.add_network_conf(network)
+        prod_network = g5kconf.NetworkConfiguration(
+            id="n1",
+            type="prod",
+            roles=["my_network"],
+            site=SITE)
+        conf = (
+            g5kconf.Configuration
+                .from_settings(
+                job_type="allow_classic_ssh",
+                job_name="placement"
+            )
+                .add_network_conf(prod_network)
+                .add_network(
+                id="not_linked_to_any_machine",
+                type="slash_22",
+                roles=["my_subnet"],
+                site=SITE
+            ))
 
-        for node in list(infra.keys()):
-            conf.add_machine(roles=[node],
-                             cluster=g5k_cluster,
-                             nodes=1,
-                             primary_network=network)
+        for i in range(0, NBR_OF_PHY_MACHINES):
+            conf.add_machine(
+                roles=["machine{}".format(i)],
+                cluster=CLUSTER,
+                nodes=1,
+                primary_network=prod_network
+            )
 
-        conf.walltime = "11:00:00"
-
+        conf.walltime = "00:59:00"
         conf.finalize()
         return conf
 
-    def deploy_infra(self):
+    def deploy_infra(self, infra):
         # Starting the machines
         self.provider = G5k(self.conf)
         roles, networks = self.provider.init()
+        roles = discover_networks(roles, networks)
+
+        # Retrieving subnet
+        subnet = [n for n in networks if "my_subnet" in n["roles"]]
+
+        # We describe the VMs types and placement in the following
+        virt_conf = (
+            vmconf.Configuration
+                .from_settings(image=g5k_image))
+        # Starts some vms on a single role
+        # Here that means start the VMs on a single machine
+        j = 0
+        for node in list(infra.keys()):
+            print(node)
+            virt_conf.add_machine(
+                roles=[node],
+                number=1,
+                undercloud=roles["machine{}".format(j % NBR_OF_PHY_MACHINES)],
+            )
+            j = j + 1
+        virt_conf.finalize()
+
+        # Start them
+        vmroles, networks = start_virtualmachines(virt_conf, subnet)
+        roles = discover_networks(vmroles, networks)
 
         self.get_job_id()
         print("job_id: " + str(self.job_id))

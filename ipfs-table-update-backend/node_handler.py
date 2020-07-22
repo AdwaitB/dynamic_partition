@@ -36,7 +36,7 @@ if not do_async:
 
 msg_queue = {}
 lock_msg_queue = threading.Lock()
-UPDATE_INTERVAL = 5
+UPDATE_INTERVAL = 0.001
 
 class ItemStore(object):
     def __init__(self):
