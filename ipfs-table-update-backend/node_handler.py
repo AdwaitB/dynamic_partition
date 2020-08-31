@@ -108,7 +108,8 @@ def handler():
                     return json.dumps({"output": "404", "request_json": request_json}) + "\n\n"
 
             elif request_json[TYPE] == RequestType.JOB.name:
-                output = handle_job(request_json)
+                executor.submit(handle_job, request_json)
+                output = {"time_download": 0, "req_time": 0, "ignore": 0}
 
             elif request_json[TYPE] == RequestType.DHT.name:
                 output = handle_dht(request_json)
@@ -443,7 +444,7 @@ def handle_job(request_json):
         download_time, removed_hash = do_download(request_json[FH], table.src_ips[str(request_json[FH])]['source'], request_json)
         req_time = 0
 
-    logging.debug("{}:JOB ID {}:HANDLE JOB:END:".format(dt.now(), request_json['job_id']))
+    logging.debug("{}:JOB ID {}:HANDLE JOB:END: time_download: {} - req_time: {}".format(dt.now(), request_json['job_id']), download_time, req_time)
 
     ongoing_downloads.discard(request_json[FH])
 
@@ -635,6 +636,6 @@ def release_lock_for_hash(file_id):
 if __name__ == '__main__':
     my_session = requests.Session()
     from requests.adapters import HTTPAdapter
-    my_session.mount('http://', HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=100))
+    my_session.mount('http://', HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=100))
     send_msg()
     app.run(port=NODE_CUSTOM_PORT, host='0.0.0.0')
