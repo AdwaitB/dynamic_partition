@@ -635,6 +635,6 @@ def release_lock_for_hash(file_id):
 if __name__ == '__main__':
     my_session = requests.Session()
     from requests.adapters import HTTPAdapter
-    my_session.mount('http://', HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=100))
+    my_session.mount('http://', HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=100))
     send_msg()
     app.run(port=NODE_CUSTOM_PORT, host='0.0.0.0')

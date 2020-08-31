@@ -14,15 +14,15 @@ import os
 
 logging.basicConfig(level=logging.DEBUG)
 
-#infra_current = generate_dict_from_yml("Topologies/condensed_west_europe-inferred.gml")
 infra_current = generate_dict_from_yml("Topologies/condensed_west_europe-inferred.gml")
+#infra_current = generate_dict_from_yml("Topologies/Renater2010.gml")
 # infra_current = INFRA_complete_10
 #infra_current = INFRA_triangle
 #provider = Providers.Vagrant
 provider = Providers.G5K
-cache_size_list = [20, 40, 60]
-interval_list =  [0.001, 1, 2, 3, 4, 5]
-#interval_list =  [1]
+cache_size_list = [60]
+interval_list =  [0.001, 2, 4, 6, 8, 10]
+#interval_list =  [1, 2]
 pp(infra_current)
 
 
@@ -85,19 +85,19 @@ def experiments(setting, destroy_enable, first_deploy=True):
 	if first_deploy:
 		job_id = deploy()
 
-		keep_alive = 0
+		#keep_alive = 0
 
-		if provider == Providers.G5K:
-			keep_alive = OarKeepAlive(job_id, g5k_loc)
-			keep_alive.start()
+		#if provider == Providers.G5K:
+			#keep_alive = OarKeepAlive(job_id, g5k_loc)
+			#keep_alive.start()
 		emulate()
 
 	run_exp(setting)
 	fetch(setting)
 
-	if provider == Providers.G5K:
-		keep_alive.ongoing = False
-		keep_alive.join()
+	#if provider == Providers.G5K:
+		#keep_alive.ongoing = False
+		#keep_alive.join()
 
 	if destroy_enable:
 		destroy()
@@ -128,14 +128,14 @@ def set_update_interval(new_interval):
     fin.close()
 
 def main():
-	os.system('rm -rf current enos_*')  # Clean the previous enoslib related folders.
+    os.system('rm -rf current enos_*')  # Clean the previous enoslib related folders.
     experiments("baseline", False, first_deploy=True)
     for interval in interval_list:
         set_update_interval(interval)
         for cache_size in cache_size_list:
             set_cache_size(cache_size)
-            experiments("dht-{}-{}s".format(cache_size, interval), False, first_deploy=False)
             experiments("new-{}-{}s".format(cache_size, interval), False, first_deploy=False)
+            experiments("dht-{}-{}s".format(cache_size, interval), False, first_deploy=False)
 
 time_start = time.time()
 main()

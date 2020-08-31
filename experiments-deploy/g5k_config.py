@@ -56,7 +56,7 @@ class G5KProvider:
                 primary_network=prod_network
             )
 
-        conf.walltime = "00:59:00"
+        conf.walltime = "13:30:00"
         conf.finalize()
         return conf
 
@@ -82,8 +82,10 @@ class G5KProvider:
                 roles=[node],
                 number=1,
                 undercloud=roles["machine{}".format(j % NBR_OF_PHY_MACHINES)],
+                flavour="large"
             )
             j = j + 1
+            if (j % NBR_OF_PHY_MACHINES) == 0: j = j + 1
         virt_conf.finalize()
 
         # Start them

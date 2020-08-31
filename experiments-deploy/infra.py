@@ -15,7 +15,7 @@ g5k_cluster = "ecotype"
 # g5k_image = "https://api.grid5000.fr/4.0/sites/{}/public/alexvankempen/mydebian.env".format(g5k_loc)
 #g5k_image = "https://api.grid5000.fr/sid/sites/rennes/public/alexvankempen/mydebian.env"
 g5k_image = "/home/alexvankempen/public/custom_qemu_image.qcow2"
-NBR_OF_PHY_MACHINES = 27
+NBR_OF_PHY_MACHINES = 47
 
 INFRA_two = {
     "master": {},

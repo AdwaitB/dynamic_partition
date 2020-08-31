@@ -22,7 +22,7 @@ FSIP = 'file_src_ip'
 HTTP_TIMEOUT = 3600  # (seconds)
 SEED = 111
 N_JOBS = 20000
-MAX_CACHE_SIZE = 40
+MAX_CACHE_SIZE = 60
 N_THREADS = 100
 do_async = False
 
@@ -83,5 +83,5 @@ TRACES_FOLDER = "/root/deploy/traces/"
 FILE_CACHE = "/root/deploy/files-cache/"
 
 # Values in ms, time between jobs = a + rand(0, b)
-JOB_GENERATION_A = 50
-JOB_GENERATION_B = 50
+JOB_GENERATION_A = 10
+JOB_GENERATION_B = 10
